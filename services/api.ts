@@ -30,18 +30,30 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
     cache: "no-store",
   });
 
+  const text = await res.text();
+
   if (!res.ok) {
-    let errorDetail = "";
-    try {
-      const errJson = await res.json();
-      errorDetail = errJson.error || errJson.details || JSON.stringify(errJson);
-    } catch {
-      errorDetail = await res.text();
+    let errorDetail = text || `API request failed with status ${res.status}`;
+    if (text) {
+      try {
+        const errJson = JSON.parse(text);
+        errorDetail = errJson.error || errJson.details || JSON.stringify(errJson);
+      } catch {
+        // Keep the raw text when it is not valid JSON.
+      }
     }
     throw new Error(errorDetail || `API request failed with status ${res.status}`);
   }
 
-  return res.json();
+  if (!text) {
+    return undefined as T;
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error(`Response from ${url} was not valid JSON.`);
+  }
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -393,6 +405,7 @@ export async function getEvidenceRecords(experimentId?: string): Promise<Evidenc
       outputCommitment: r.outputCommitment || undefined,
       softwareIdentity: r.softwareIdentity || undefined,
       softwareVersion: r.softwareVersion || undefined,
+      evidenceJson: r.evidenceJson || undefined,
       bindingVerification: r.bindingVerification || "verified",
       signatureVerification: r.signatureVerification || "verified",
       transparencyVerification: r.transparencyVerification || "verified",
@@ -420,6 +433,7 @@ export async function getEvidenceRecord(id: string): Promise<EvidenceRecord | nu
       outputCommitment: r.outputCommitment || undefined,
       softwareIdentity: r.softwareIdentity || undefined,
       softwareVersion: r.softwareVersion || undefined,
+      evidenceJson: r.evidenceJson || undefined,
       bindingVerification: r.bindingVerification || "verified",
       signatureVerification: r.signatureVerification || "verified",
       transparencyVerification: r.transparencyVerification || "verified",

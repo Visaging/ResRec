@@ -1193,14 +1193,16 @@ export default function ExperimentDetailPage() {
                                 {formatDateTime(node.timestamp)}
                               </p>
 
-                              <div className="space-y-1 text-[11px] text-ink-muted bg-surface p-2 border border-border mb-3 max-h-24 overflow-y-auto">
-                                {Object.entries(node.metadata).map(([k, v]) => (
-                                  <div key={k} className="flex justify-between gap-1">
-                                    <span className="capitalize text-ink-faint">{k}:</span>
-                                    <span className="font-mono text-ink truncate">{v}</span>
-                                  </div>
-                                ))}
-                              </div>
+                              {Object.keys(node.metadata).length > 0 && (
+                                <div className="space-y-1 text-[11px] text-ink-muted bg-surface p-2 border border-border mb-3 max-h-24 overflow-y-auto">
+                                  {Object.entries(node.metadata).map(([k, v]) => (
+                                    <div key={k} className="flex justify-between gap-1">
+                                      <span className="capitalize text-ink-faint">{k}:</span>
+                                      <span className="font-mono text-ink truncate">{v}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
 
                             {node.recordId && (
@@ -1662,7 +1664,7 @@ export default function ExperimentDetailPage() {
               </span>
               <div className="flex gap-2">
                 <Link
-                  href="/verification"
+                  href={`/verification?evidence=${encodeURIComponent(selectedEvidenceRecord.id)}`}
                   className="inline-flex items-center justify-center px-4 py-2 text-xs font-medium text-white bg-primary hover:bg-primary/90 transition-colors shadow-sm"
                 >
                   <ShieldCheck className="w-3.5 h-3.5 mr-1.5" />

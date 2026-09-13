@@ -97,24 +97,46 @@ export async function GET(
     });
 
     // 2. Instrument & Sample Nodes
+    const instruments = new Map<string, { measurementCount: number; fromExperiment: boolean }>();
     if (experiment.instrumentName) {
-      const instNodeId = `node-inst-${experiment.id}`;
+      instruments.set(experiment.instrumentName, {
+        measurementCount: 0,
+        fromExperiment: true,
+      });
+    }
+    for (const measurement of experiment.measurements) {
+      if (!measurement.instrumentName) continue;
+      const existing = instruments.get(measurement.instrumentName);
+      instruments.set(measurement.instrumentName, {
+        measurementCount: (existing?.measurementCount || 0) + 1,
+        fromExperiment: existing?.fromExperiment || false,
+      });
+    }
+
+    Array.from(instruments.entries()).forEach(([instrumentName, details], index) => {
+      const instNodeId = `node-inst-${experiment.id}-${index}`;
       nodes.push({
         id: instNodeId,
         type: "instrument",
-        label: experiment.instrumentName,
+        label: instrumentName,
         sublabel: "Calibrated Acquisition Sensor",
         status: "verified",
         timestamp: experiment.createdAt.toISOString(),
+        metadata: {
+          usedFor: details.measurementCount > 0
+            ? `${details.measurementCount} measurement${details.measurementCount === 1 ? "" : "s"}`
+            : "Experiment configuration",
+          source: details.fromExperiment ? "Experiment and measurement records" : "Measurement records",
+        },
       });
       edges.push({
         id: `edge-${instNodeId}-${expNodeId}`,
         source: instNodeId,
         target: expNodeId,
-        label: "calibrated for",
+        label: "used for",
         status: "verified",
       });
-    }
+    });
 
     // 3. Representative Measurements (show initial, corrections, and key milestones)
     const sampledMeasurements = experiment.measurements.filter(

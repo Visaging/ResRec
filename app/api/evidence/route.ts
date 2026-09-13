@@ -72,6 +72,7 @@ export async function GET(request: Request) {
       inputCommitment: r.inputCommitment,
       outputCommitment: r.outputCommitment,
       softwareIdentity: r.softwareIdentity,
+      evidenceJson: r.evidenceJson,
       digest: r.digest,
       bindingVerification: r.bindingVerification,
       signatureVerification: r.signatureVerification,

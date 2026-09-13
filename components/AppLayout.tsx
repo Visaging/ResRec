@@ -313,18 +313,34 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       >
         <nav className="flex flex-col h-full">
           {/* Collapse button */}
-          <div className="flex justify-end p-3 border-b border-border">
-            <button
+          <div
+            className={`flex items-center gap-2 p-3 border-b border-border ${
+              sidebarCollapsed ? "justify-center" : "justify-between"
+            }`}
+          >
+            {!sidebarCollapsed && (
+              <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+                Workspace
+              </span>
+            )}
+            <motion.button
+              type="button"
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="p-1.5 text-ink-muted hover:text-ink hover:bg-surface-elevated transition-all cursor-pointer"
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-expanded={!sidebarCollapsed}
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-surface-elevated/60 text-ink-muted shadow-sm transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary cursor-pointer"
               title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
-              {sidebarCollapsed ? (
-                <ChevronRight className="w-4 h-4" />
-              ) : (
+              <motion.span
+                animate={{ rotate: sidebarCollapsed ? 180 : 0 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="flex"
+              >
                 <ChevronLeft className="w-4 h-4" />
-              )}
-            </button>
+              </motion.span>
+            </motion.button>
           </div>
 
           {/* Main navigation */}

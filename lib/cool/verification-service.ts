@@ -94,6 +94,11 @@ export class CooLVerificationService {
         unwrapAttempts++;
         continue;
       }
+      if (obj.evidenceRecord) {
+        receipt = obj.evidenceRecord;
+        unwrapAttempts++;
+        continue;
+      }
       break;
     }
 

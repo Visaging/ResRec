@@ -65,6 +65,19 @@ export function downloadJsonFile(filename: string, data: unknown) {
   URL.revokeObjectURL(url);
 }
 
+export function downloadTextFile(filename: string, text: string) {
+  if (typeof window === "undefined") return;
+  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 export function downloadCsvFile(filename: string, csvContent: string) {
   if (typeof window === "undefined") return;
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });

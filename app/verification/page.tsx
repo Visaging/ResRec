@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   PageHeader,
@@ -12,10 +12,10 @@ import {
   VerificationIcon,
   CopyButton,
 } from "@/components/ui";
-import { verifyEvidence } from "@/services/api";
+import { getEvidenceRecord, verifyEvidence } from "@/services/api";
 import type { IntegrityCheck } from "@/types";
 import { Upload, CheckCircle2, XCircle, Shield, AlertTriangle } from "lucide-react";
-import { formatDateTimeFull } from "@/lib/utils";
+import { formatDateTimeFull, downloadTextFile } from "@/lib/utils";
 
 // The individual cryptographic checks carried on an IntegrityCheck result.
 type CheckKey =
@@ -59,6 +59,119 @@ const EXPECTED_COMMITMENT =
 const OBSERVED_COMMITMENT =
   "2b91c4a7e3f5d2b8c1a6e9f4d3b7c2a5e8f1d6b9c3a4e7f2d5b8c1a9e6f3d7b2";
 
+function toSimpleIssue(issue: string): string {
+  const normalized = issue.toLowerCase();
+
+  if (normalized.includes("schema") || normalized.includes("invalid json")) {
+    return "The uploaded file is not a valid CooL evidence receipt. Use the original receipt JSON.";
+  }
+  if (normalized.includes("binding") || normalized.includes("binding_hash") || normalized.includes("commitment mismatch")) {
+    return "The receipt fingerprint does not match its signed record. The evidence may have been changed.";
+  }
+  if (normalized.includes("signature")) {
+    return "The receipt signature could not be verified. The evidence may have been changed or corrupted.";
+  }
+  if (normalized.includes("inclusion") || normalized.includes("transparency")) {
+    return "The receipt could not be confirmed in the transparency log.";
+  }
+  if (normalized.includes("record: expected") || normalized.includes("record is missing")) {
+    return "The receipt is missing its signed research record.";
+  }
+  if (normalized.includes("attestation")) {
+    return "The runtime attestation could not be verified.";
+  }
+  if (normalized.includes("sequence")) {
+    return "The evidence record is out of sequence.";
+  }
+  if (normalized.startsWith("evidence verification exception:")) {
+    return "The receipt could not be checked because the verifier encountered an error.";
+  }
+
+  return issue;
+}
+
+function CooLVerifierPanel({ result }: { result: IntegrityCheck }) {
+  const verdict = result.verdictRaw;
+  const subject = verdict?.subject;
+  const rawChecks = verdict?.checks || {};
+  const checks = [
+    { label: "Record binding", value: rawChecks.binding, fallback: result.bindingVerified },
+    { label: "Signature", value: rawChecks.signature, fallback: result.signatureVerified },
+    { label: "Transparency inclusion", value: rawChecks.inclusion, fallback: result.transparencyVerified },
+    { label: "Witnesses", value: rawChecks.witnesses },
+    { label: "Runtime attestation", value: rawChecks.attestation },
+    { label: "Enclave", value: rawChecks.enclave },
+    { label: "Public anchor", value: rawChecks.anchor },
+  ];
+
+  const getStatus = (check: (typeof checks)[number]) => {
+    if (check.value?.status === "pass" || check.value?.status === "simulated" || check.fallback) {
+      return check.value?.status === "simulated" ? "Simulated" : "Verified";
+    }
+    if (check.value?.status === "absent") return "Not provided";
+    if (check.value?.status === "fail") return "Failed";
+    return "Not checked";
+  };
+
+  return (
+    <Card className="p-6">
+      <div className="flex items-start justify-between gap-4 mb-5">
+        <div>
+          <h4 className="text-sm font-semibold text-ink">CooL Cryptographic Verification</h4>
+          <p className="text-xs text-ink-muted mt-1">
+            Receipt integrity checks presented in a readable verification view.
+          </p>
+        </div>
+        <span
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold border ${
+            result.verified
+              ? "text-success border-success/30 bg-success/10"
+              : "text-error border-error/30 bg-error/10"
+          }`}
+        >
+          {result.verified ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+          {result.verified ? "Verified" : "Failed"}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+        <div className="p-3 bg-surface-elevated border border-border">
+          <p className="text-[10px] uppercase tracking-wider text-ink-faint mb-1">Evidence event</p>
+          <p className="text-xs font-medium text-ink truncate">{subject?.subject || "CooL evidence receipt"}</p>
+        </div>
+        <div className="p-3 bg-surface-elevated border border-border">
+          <p className="text-[10px] uppercase tracking-wider text-ink-faint mb-1">Record ID</p>
+          <p className="text-xs font-mono text-ink truncate">{subject?.record_id || "Not available"}</p>
+        </div>
+        <div className="p-3 bg-surface-elevated border border-border">
+          <p className="text-[10px] uppercase tracking-wider text-ink-faint mb-1">Signer</p>
+          <p className="text-xs font-mono text-ink truncate">{subject?.key_id || "Not available"}</p>
+        </div>
+        <div className="p-3 bg-surface-elevated border border-border">
+          <p className="text-[10px] uppercase tracking-wider text-ink-faint mb-1">Runtime</p>
+          <p className="text-xs text-ink truncate">{subject?.tee || "Not available"}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {checks.map((check) => {
+          const status = getStatus(check);
+          const verified = status === "Verified" || status === "Simulated";
+          const failed = status === "Failed";
+          return (
+            <div key={check.label} className="flex items-center justify-between gap-3 p-3 border border-border bg-surface">
+              <span className="text-xs text-ink">{check.label}</span>
+              <span className={`text-[11px] font-semibold ${verified ? "text-success" : failed ? "text-error" : "text-ink-muted"}`}>
+                {status}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
 export default function VerificationPage() {
   const [file, setFile] = useState<File | null>(null);
   const [receiptText, setReceiptText] = useState("");
@@ -66,6 +179,24 @@ export default function VerificationPage() {
   const [result, setResult] = useState<IntegrityCheck | null>(null);
   const [steps, setSteps] = useState<VerificationStep[]>([]);
   const [simulate, setSimulate] = useState<"valid" | "tampered">("valid");
+  const [demoStatus, setDemoStatus] = useState<string>("");
+
+  useEffect(() => {
+    const evidenceId = new URLSearchParams(window.location.search).get("evidence");
+    if (!evidenceId) return;
+
+    let cancelled = false;
+    getEvidenceRecord(evidenceId).then((record) => {
+      if (!cancelled && record?.evidenceJson) {
+        setReceiptText(record.evidenceJson);
+        setFile(null);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -127,6 +258,52 @@ export default function VerificationPage() {
   };
 
   const failedChecks = result ? CHECKS.filter((c) => !result[c.key]) : [];
+
+  const handleDownloadReport = () => {
+    if (!result) return;
+
+    const simpleIssues = Array.from(new Set(result.issues.map(toSimpleIssue)));
+    const report = [
+      "RESREC VERIFICATION REPORT",
+      "==========================",
+      "",
+      `Result: ${result.verified ? "VERIFIED" : "FAILED"}`,
+      `Completed: ${formatDateTimeFull(result.lastVerification)}`,
+      "",
+      "CHECKS",
+      ...CHECKS.map((check) => `${check.label}: ${result[check.key] ? "Verified" : "Failed"}`),
+      "",
+      "REPORTED ISSUES",
+      ...(simpleIssues.length > 0 ? simpleIssues.map((issue) => `- ${issue}`) : ["- None"]),
+      "",
+      result.verified
+        ? "Conclusion: The evidence receipt is intact and its cryptographic checks passed."
+        : "Conclusion: The evidence receipt could not be fully verified. Review the issues above.",
+      "",
+      "Technical verifier output is available in the application for audit purposes.",
+    ].join("\n");
+
+    downloadTextFile(`resrec-verification-${result.verified ? "verified" : "failed"}.txt`, report);
+  };
+
+  const runTamperDemo = async (endpoint: string, label: string) => {
+    setDemoStatus(`Running ${label} demo...`);
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || `Failed to ${label.toLowerCase()}`);
+      }
+      setDemoStatus(data.message || `${label} demo complete.`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Unknown tamper error";
+      setDemoStatus(`Demo failed: ${message}`);
+    }
+  };
 
   return (
     <div>
@@ -261,6 +438,45 @@ export default function VerificationPage() {
                               </button>
                             ))}
                           </div>
+                        </div>
+
+                        <div className="border-t border-border pt-3 mt-4">
+                          <label className="text-xs font-semibold text-ink-muted uppercase tracking-wider block mb-2">
+                            Tamper Demo
+                          </label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => runTamperDemo("/api/dev/tamper/measurement", "Measurement tamper")}
+                              className="px-3 py-2 text-xs font-medium border border-border bg-surface text-ink-muted hover:text-ink hover:border-border-strong transition-colors"
+                            >
+                              Tamper Measurement
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => runTamperDemo("/api/dev/tamper/dataset", "Dataset tamper")}
+                              className="px-3 py-2 text-xs font-medium border border-border bg-surface text-ink-muted hover:text-ink hover:border-border-strong transition-colors"
+                            >
+                              Tamper Dataset
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => runTamperDemo("/api/dev/tamper/receipt", "Receipt tamper")}
+                              className="px-3 py-2 text-xs font-medium border border-border bg-surface text-ink-muted hover:text-ink hover:border-border-strong transition-colors"
+                            >
+                              Corrupt Receipt
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => runTamperDemo("/api/dev/restore", "Restore baseline")}
+                              className="px-3 py-2 text-xs font-medium border border-border bg-surface text-ink-muted hover:text-ink hover:border-border-strong transition-colors"
+                            >
+                              Restore Baseline
+                            </button>
+                          </div>
+                          {demoStatus && (
+                            <p className="mt-3 text-xs text-ink-muted">{demoStatus}</p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -413,26 +629,13 @@ export default function VerificationPage() {
                 </div>
               </Card>
 
-              {/* Live CooL Verifier Report */}
-              {result.report && (
-                <Card className="p-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-xs font-semibold text-ink uppercase tracking-wider">
-                      CooL Cryptographic Verifier Output
-                    </h4>
-                    <CopyButton text={result.report} />
-                  </div>
-                  <pre className="p-4 bg-surface-elevated border border-border text-xs font-mono text-ink overflow-x-auto whitespace-pre leading-relaxed rounded">
-                    {result.report}
-                  </pre>
-                </Card>
-              )}
+              <CooLVerifierPanel result={result} />
 
               <div className="flex gap-3">
                 <Button variant="secondary" onClick={resetVerification}>
                   Verify Another Receipt
                 </Button>
-                <Button variant="primary">Download Verification Report</Button>
+                <Button variant="primary" onClick={handleDownloadReport}>Download Verification Report</Button>
               </div>
             </motion.div>
           )}
@@ -522,7 +725,7 @@ export default function VerificationPage() {
                     Reported Issues
                   </h3>
                   <ul className="space-y-3">
-                    {result.issues.map((issue) => (
+                    {Array.from(new Set(result.issues.map(toSimpleIssue))).map((issue) => (
                       <li key={issue} className="flex items-start gap-3">
                         <AlertTriangle className="w-4 h-4 text-error flex-shrink-0 mt-0.5" />
                         <span className="text-sm text-ink">{issue}</span>
@@ -594,26 +797,13 @@ export default function VerificationPage() {
                 </Card>
               )}
 
-              {/* Live CooL Verifier Report on Failure */}
-              {result.report && (
-                <Card className="p-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-xs font-semibold text-ink uppercase tracking-wider">
-                      CooL Cryptographic Verifier Diagnostic Output
-                    </h4>
-                    <CopyButton text={result.report} />
-                  </div>
-                  <pre className="p-4 bg-surface-elevated border border-border text-xs font-mono text-ink overflow-x-auto whitespace-pre leading-relaxed rounded">
-                    {result.report}
-                  </pre>
-                </Card>
-              )}
+              <CooLVerifierPanel result={result} />
 
               <div className="flex gap-3">
                 <Button variant="secondary" onClick={resetVerification}>
                   Verify Another Receipt
                 </Button>
-                <Button variant="primary">Download Verification Report</Button>
+                <Button variant="primary" onClick={handleDownloadReport}>Download Verification Report</Button>
               </div>
             </motion.div>
           )}
