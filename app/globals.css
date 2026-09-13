@@ -1,0 +1,171 @@
+@import "tailwindcss";
+
+/* Dark mode is driven by [data-theme="dark"] on <html> (see lib/theme.ts) */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
+  Design tokens. Declared in @theme so Tailwind generates real utilities for
+  them (bg-surface, text-ink, border-border, bg-success/10, hover:bg-*, ...).
+  Dark values are overridden below in an unlayered rule, which beats the
+  @layer theme :root block regardless of source order.
+*/
+@theme {
+  --color-background: #f7f8fa;
+  --color-surface: #ffffff;
+  --color-surface-elevated: #f1f3f7;
+  --color-surface-sunken: #eceff4;
+
+  --color-border: #e2e5ec;
+  --color-border-strong: #cbd2dd;
+
+  --color-ink: #0f1729;
+  --color-ink-muted: #4a5568;
+  --color-ink-faint: #7b8494;
+
+  --color-primary: #1a56db;
+  --color-primary-hover: #1e40af;
+  --color-primary-ink: #ffffff;
+
+  --color-success: #15803d;
+  --color-warning: #b45309;
+  --color-error: #b91c1c;
+  --color-info: #1d4ed8;
+
+  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, monospace;
+
+  --shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 0.06);
+  --shadow-md: 0 4px 12px -2px rgb(15 23 42 / 0.08), 0 2px 4px -2px rgb(15 23 42 / 0.06);
+  --shadow-lg: 0 12px 28px -8px rgb(15 23 42 / 0.14), 0 4px 8px -4px rgb(15 23 42 / 0.08);
+}
+
+[data-theme="dark"] {
+  --color-background: #0b1020;
+  --color-surface: #121a2e;
+  --color-surface-elevated: #1c2740;
+  --color-surface-sunken: #080d1a;
+
+  --color-border: #26324b;
+  --color-border-strong: #3a4a6b;
+
+  --color-ink: #e8edf7;
+  --color-ink-muted: #9aa8c0;
+  --color-ink-faint: #6b7a94;
+
+  --color-primary: #5b8def;
+  --color-primary-hover: #7ba3f5;
+  --color-primary-ink: #0b1020;
+
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
+  --color-info: #7dd3fc;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 12px 28px -8px rgb(0 0 0 / 0.6), 0 4px 8px -4px rgb(0 0 0 / 0.5);
+}
+
+@layer base {
+  /* Tailwind v4 defaults border-color to currentColor; use the token instead. */
+  *,
+  *::before,
+  *::after {
+    border-color: var(--color-border);
+  }
+
+  html {
+    color-scheme: light;
+  }
+
+  [data-theme="dark"] {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    color: var(--color-ink);
+  }
+
+  code, pre {
+    font-family: var(--font-mono);
+  }
+
+  /* Links are styled per-context; no global underline in an app shell. */
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+/* Tabular figures for data tables and measurement values */
+.tabular-nums-sm {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Skeleton loader */
+.skeleton {
+  background-image: linear-gradient(
+    90deg,
+    var(--color-surface-elevated) 0%,
+    var(--color-surface) 50%,
+    var(--color-surface-elevated) 100%
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 1.8s infinite linear;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -500px 0;
+  }
+  100% {
+    background-position: 500px 0;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border: 2px solid var(--color-background);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-faint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

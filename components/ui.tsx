@@ -1,0 +1,513 @@
+// Enhanced UI components for ResRec v2
+
+"use client";
+
+import { cn } from "@/lib/utils";
+import type { VerificationStatus } from "@/types";
+import { CheckCircle2, XCircle, AlertCircle, Minus, Copy, Check } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
+
+// Status Badge with animation
+interface StatusBadgeProps {
+  status: string;
+  className?: string;
+}
+
+export function StatusBadge({ status, className }: StatusBadgeProps) {
+  const variants: Record<string, string> = {
+    active: "bg-primary/10 text-primary border-primary/25",
+    completed: "bg-surface-elevated text-ink-muted border-border",
+    under_review: "bg-warning/10 text-warning border-warning/25",
+    integrity_issue: "bg-error/10 text-error border-error/25",
+    verified: "bg-success/10 text-success border-success/25",
+    failed: "bg-error/10 text-error border-error/25",
+    not_provided: "bg-surface-elevated text-ink-faint border-border",
+    not_checked: "bg-surface-elevated text-ink-faint border-border",
+  };
+
+  const variant = variants[status] ?? variants.not_checked;
+  const label = status.replace(/_/g, " ");
+
+  return (
+    <motion.span
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.2 }}
+      className={cn(
+        "inline-flex items-center px-2.5 py-1 text-xs font-medium border uppercase tracking-wide whitespace-nowrap",
+        variant,
+        className
+      )}
+    >
+      {label}
+    </motion.span>
+  );
+}
+
+// Verification Icon with status
+interface VerificationIconProps {
+  status: VerificationStatus;
+  className?: string;
+  animate?: boolean;
+}
+
+export function VerificationIcon({ status, className, animate = true }: VerificationIconProps) {
+  const icons: Record<VerificationStatus, React.ReactNode> = {
+    verified: <CheckCircle2 className="w-4 h-4 text-success" />,
+    failed: <XCircle className="w-4 h-4 text-error" />,
+    not_provided: <Minus className="w-4 h-4 text-ink-faint" />,
+    not_checked: <AlertCircle className="w-4 h-4 text-ink-faint" />,
+  };
+
+  const icon = icons[status] ?? icons.not_checked;
+
+  if (!animate) {
+    return (
+      <span className={cn("inline-flex items-center", className)}>{icon}</span>
+    );
+  }
+
+  return (
+    <motion.span
+      className={cn("inline-flex items-center", className)}
+      initial={{ opacity: 0, scale: 0.6 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.25, type: "spring", stiffness: 400, damping: 25 }}
+    >
+      {icon}
+    </motion.span>
+  );
+}
+
+// Page Header
+interface PageHeaderProps {
+  title: string;
+  subtitle?: string;
+  actions?: React.ReactNode;
+  badge?: React.ReactNode;
+}
+
+export function PageHeader({ title, subtitle, actions, badge }: PageHeaderProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="mb-8"
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-2xl font-semibold text-ink">{title}</h1>
+            {badge}
+          </div>
+          {subtitle && <p className="text-sm text-ink-muted leading-relaxed max-w-3xl">{subtitle}</p>}
+        </div>
+        {actions && <div className="flex items-center gap-3 ml-6">{actions}</div>}
+      </div>
+    </motion.div>
+  );
+}
+
+// Section
+interface SectionProps {
+  title?: string;
+  subtitle?: string;
+  children: React.ReactNode;
+  className?: string;
+  action?: React.ReactNode;
+}
+
+export function Section({ title, subtitle, children, className, action }: SectionProps) {
+  return (
+    <section className={cn("mb-8", className)}>
+      {(title || action) && (
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            {title && <h2 className="text-base font-semibold text-ink">{title}</h2>}
+            {subtitle && <p className="text-sm text-ink-muted mt-1">{subtitle}</p>}
+          </div>
+          {action}
+        </div>
+      )}
+      {children}
+    </section>
+  );
+}
+
+// Card with hover effect
+interface CardProps {
+  children: React.ReactNode;
+  className?: string;
+  hover?: boolean;
+  onClick?: () => void;
+}
+
+export function Card({ children, className, hover = false, onClick }: CardProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      onClick={onClick}
+      className={cn(
+        "bg-surface border border-border",
+        hover && "transition-colors hover:border-border-strong hover:shadow-sm cursor-pointer",
+        onClick && "cursor-pointer",
+        className
+      )}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// Button with variants
+interface ButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "onAnimationStart" | "onDragStart" | "onDragEnd" | "onDrag"> {
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger";
+  size?: "xs" | "sm" | "md" | "lg";
+  children: React.ReactNode;
+  loading?: boolean;
+}
+
+export function Button({
+  variant = "primary",
+  size = "md",
+  children,
+  className,
+  loading,
+  disabled,
+  ...props
+}: ButtonProps) {
+  const variants = {
+    primary:
+      "bg-primary text-primary-ink border border-primary hover:bg-primary-hover hover:border-primary-hover",
+    secondary:
+      "bg-surface text-ink border border-border hover:bg-surface-elevated hover:border-border-strong",
+    outline:
+      "bg-transparent text-ink-muted border border-border hover:text-ink hover:border-border-strong hover:bg-surface-elevated",
+    ghost:
+      "bg-transparent text-ink-muted border border-transparent hover:text-ink hover:bg-surface-elevated",
+    danger:
+      "bg-error text-white border border-error hover:opacity-90",
+  };
+
+  const sizes = {
+    xs: "px-2 py-1 text-xs",
+    sm: "px-3 py-1.5 text-xs",
+    md: "px-4 py-2 text-sm",
+    lg: "px-6 py-3 text-base",
+  };
+
+  return (
+    <motion.button
+      whileHover={{ scale: disabled || loading ? 1 : 1.015 }}
+      whileTap={{ scale: disabled || loading ? 1 : 0.985 }}
+      transition={{ duration: 0.15 }}
+      className={cn(
+        "inline-flex items-center justify-center font-medium transition-colors",
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+        variants[variant],
+        sizes[size],
+        (disabled || loading) && "cursor-not-allowed opacity-60",
+        className
+      )}
+      disabled={disabled || loading}
+      {...props}
+    >
+      {loading ? (
+        <span className="flex items-center justify-center gap-2">
+          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+              fill="none"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            />
+          </svg>
+          {children}
+        </span>
+      ) : (
+        children
+      )}
+    </motion.button>
+  );
+}
+
+// Input with focus animation
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  label?: string;
+  error?: string;
+}
+
+export function Input({ label, error, className, ...props }: InputProps) {
+  return (
+    <div className="w-full">
+      {label && (
+        <label className="block text-sm font-medium text-ink mb-1.5">{label}</label>
+      )}
+      <input
+        className={cn(
+          "w-full px-3 py-2 border bg-surface text-sm text-ink placeholder:text-ink-faint",
+          "focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-primary",
+          "transition-colors duration-200",
+          error ? "border-error" : "border-border hover:border-border-strong",
+          className
+        )}
+        {...props}
+      />
+      {error && (
+        <motion.p
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-1.5 text-xs text-error"
+        >
+          {error}
+        </motion.p>
+      )}
+    </div>
+  );
+}
+
+// Select
+interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+  label?: string;
+  options: { value: string; label: string }[];
+}
+
+export function Select({ label, options, className, ...props }: SelectProps) {
+  return (
+    <div className="w-full">
+      {label && (
+        <label className="block text-sm font-medium text-ink mb-1.5">{label}</label>
+      )}
+      <select
+        className={cn(
+          "w-full px-3 py-2 border border-border bg-surface text-sm text-ink",
+          "focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-primary",
+          "hover:border-border-strong transition-colors duration-200",
+          className
+        )}
+        {...props}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+// Textarea
+interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+  label?: string;
+}
+
+export function Textarea({ label, className, ...props }: TextareaProps) {
+  return (
+    <div className="w-full">
+      {label && (
+        <label className="block text-sm font-medium text-ink mb-1.5">{label}</label>
+      )}
+      <textarea
+        className={cn(
+          "w-full px-3 py-2 border border-border bg-surface text-sm text-ink placeholder:text-ink-faint",
+          "focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-primary",
+          "hover:border-border-strong transition-colors duration-200",
+          className
+        )}
+        {...props}
+      />
+    </div>
+  );
+}
+
+// Copy button with feedback
+interface CopyButtonProps {
+  text: string;
+  className?: string;
+}
+
+export function CopyButton({ text, className }: CopyButtonProps) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className={cn(
+        "p-1.5 text-ink-faint hover:text-ink hover:bg-surface-elevated transition-colors",
+        className
+      )}
+      title="Copy to clipboard"
+      aria-label="Copy to clipboard"
+    >
+      <AnimatePresence mode="wait">
+        {copied ? (
+          <motion.div
+            key="check"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0 }}
+          >
+            <Check className="w-4 h-4 text-success" />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="copy"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0 }}
+          >
+            <Copy className="w-4 h-4" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </button>
+  );
+}
+
+// Empty State
+interface EmptyStateProps {
+  title: string;
+  description?: React.ReactNode;
+  action?: React.ReactNode;
+  icon?: React.ReactNode;
+}
+
+export function EmptyState({ title, description, action, icon }: EmptyStateProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="text-center py-16"
+    >
+      {icon && <div className="flex justify-center mb-4 text-ink-faint">{icon}</div>}
+      <h3 className="text-base font-semibold text-ink mb-2">{title}</h3>
+      {description && (
+        <div className="text-sm text-ink-muted mb-6 max-w-md mx-auto">{description}</div>
+      )}
+      {action}
+    </motion.div>
+  );
+}
+
+// Loading Skeleton with shimmer
+export function Skeleton({ className }: { className?: string }) {
+  return <div className={cn("skeleton rounded", className)} role="status" aria-label="Loading" />;
+}
+
+// Table wrapper
+interface TableProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+export function Table({ children, className }: TableProps) {
+  return (
+    <div className="overflow-x-auto">
+      <table className={cn("w-full text-sm", className)}>{children}</table>
+    </div>
+  );
+}
+
+// Metric Card for dashboard
+interface MetricCardProps {
+  label: string;
+  value: string | number;
+  subtitle?: string;
+  trend?: "up" | "down" | "neutral";
+  sparkline?: number[];
+}
+
+export function MetricCard({ label, value, subtitle, trend }: MetricCardProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="bg-surface border border-border p-6 hover:border-border-strong hover:shadow-sm transition-colors"
+    >
+      <div className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-2">
+        {label}
+      </div>
+      <div className="text-3xl font-semibold text-ink mb-1 tabular-nums-sm">{value}</div>
+      {subtitle && (
+        <div className="text-xs text-ink-muted flex items-center gap-1">
+          {trend && (
+            <span
+              className={cn(
+                "font-medium",
+                trend === "up" && "text-success",
+                trend === "down" && "text-error"
+              )}
+            >
+              {trend === "up" ? "↑" : trend === "down" ? "↓" : ""}
+            </span>
+          )}
+          {subtitle}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+// Tab Navigation
+interface TabProps {
+  tabs: { id: string; label: string; count?: number }[];
+  activeTab: string;
+  onChange: (id: string) => void;
+}
+
+export function Tabs({ tabs, activeTab, onChange }: TabProps) {
+  return (
+    <div className="border-b border-border">
+      <div className="flex gap-6">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => onChange(tab.id)}
+            className="relative pb-3 text-sm font-medium transition-colors"
+            aria-current={activeTab === tab.id ? "page" : undefined}
+          >
+            <span
+              className={cn(
+                "transition-colors",
+                activeTab === tab.id ? "text-ink" : "text-ink-muted hover:text-ink"
+              )}
+            >
+              {tab.label}
+              {tab.count !== undefined && (
+                <span className="ml-2 text-xs text-ink-faint">({tab.count})</span>
+              )}
+            </span>
+            {activeTab === tab.id && (
+              <motion.div
+                layoutId="activeTab"
+                className="absolute -bottom-px left-0 right-0 h-0.5 bg-primary"
+                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              />
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
