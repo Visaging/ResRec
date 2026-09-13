@@ -1,0 +1,212 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+    /* Light Theme Tokens */
+    --bg-app: #f4f6f8;
+    --bg-surface: #ffffff;
+    --bg-surface-elevated: #f8fafc;
+    --bg-surface-inset: #eef2f6;
+    --bg-sidebar: #0b1320;
+    --border-subtle: #e2e8f0;
+    --border-default: #cbd5e1;
+    --border-strong: #94a3b8;
+    
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
+    --text-faint: #94a3b8;
+
+    --accent-primary: #1d4ed8;
+    --accent-hover: #1e40af;
+    --accent-surface: #eff6ff;
+    --accent-border: #bfdbfe;
+
+    --success-primary: #059669;
+    --success-surface: #ecfdf5;
+    --success-border: #a7f3d0;
+    --success-text: #065f46;
+
+    --warning-primary: #d97706;
+    --warning-surface: #fffbeb;
+    --warning-border: #fde68a;
+    --warning-text: #92400e;
+
+    --danger-primary: #dc2626;
+    --danger-surface: #fef2f2;
+    --danger-border: #fecaca;
+    --danger-text: #991b1b;
+
+    --shadow-card: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.05);
+    --shadow-elevated: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+  }
+
+  .dark {
+    /* Dark Theme Tokens */
+    --bg-app: #080c14;
+    --bg-surface: #0f172a;
+    --bg-surface-elevated: #162036;
+    --bg-surface-inset: #090e18;
+    --bg-sidebar: #060910;
+    --border-subtle: #1e293b;
+    --border-default: #26354d;
+    --border-strong: #3b4d6b;
+
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    --text-faint: #64748b;
+
+    --accent-primary: #3b82f6;
+    --accent-hover: #60a5fa;
+    --accent-surface: #172554;
+    --accent-border: #1e3a8a;
+
+    --success-primary: #10b981;
+    --success-surface: #022c22;
+    --success-border: #065f46;
+    --success-text: #6ee7b7;
+
+    --warning-primary: #f59e0b;
+    --warning-surface: #451a03;
+    --warning-border: #78350f;
+    --warning-text: #fcd34d;
+
+    --danger-primary: #ef4444;
+    --danger-surface: #450a0a;
+    --danger-border: #7f1d1d;
+    --danger-text: #fca5a5;
+
+    --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.3);
+    --shadow-elevated: 0 4px 14px 0 rgba(0, 0, 0, 0.6);
+  }
+
+  html, body {
+    font-family: var(--font-sans);
+    background-color: var(--bg-app);
+    color: var(--text-primary);
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 150ms ease, color 150ms ease;
+  }
+
+  code, pre, .font-mono {
+    font-family: var(--font-mono);
+    font-feature-settings: "tnum" 1, "zero" 1;
+  }
+}
+
+/* Institutional Design Token Helper Classes */
+.bg-app { background-color: var(--bg-app); }
+.bg-surface { background-color: var(--bg-surface); }
+.bg-surface-elevated { background-color: var(--bg-surface-elevated); }
+.bg-surface-inset { background-color: var(--bg-surface-inset); }
+.bg-sidebar-custom { background-color: var(--bg-sidebar); }
+
+.border-subtle { border-color: var(--border-subtle); }
+.border-default { border-color: var(--border-default); }
+.border-strong { border-color: var(--border-strong); }
+
+.text-primary-custom { color: var(--text-primary); }
+.text-secondary-custom { color: var(--text-secondary); }
+.text-muted-custom { color: var(--text-muted); }
+.text-faint-custom { color: var(--text-faint); }
+
+.accent-surface-custom { background-color: var(--accent-surface); }
+.accent-border-custom { border-color: var(--accent-border); }
+.accent-text-custom { color: var(--accent-primary); }
+
+/* Purposeful, restrained micro-animations */
+@keyframes subtle-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes subtle-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes panel-slide-left {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.animate-subtle-fade {
+  animation: subtle-fade-in 160ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-subtle-scale {
+  animation: subtle-scale-in 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-panel-slide {
+  animation: panel-slide-left 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* Custom Scrollbar for Institutional Tables & Code */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-surface-inset);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
+}
+
+/* Print Styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+}
