@@ -401,7 +401,7 @@ async function runTests() {
   assert(verifyPassword("WrongPassword123", authRecord.hash, authRecord.salt) === false, "verifyPassword fails on incorrect password");
 
   // Session lifecycle
-  const elenaUser = await prisma.user.findUnique({ where: { email: "e.rostova@stanford.edu" } });
+  const elenaUser = await prisma.user.findUnique({ where: { email: "akshat.agrawal@iitb.ac.in" } });
   assert(!!elenaUser, "Elena user exists in DB with hashed credentials");
 
   const session = await createSession(elenaUser!.id);
@@ -422,8 +422,8 @@ async function runTests() {
   // ─────────────────────────────────────────────────────────────
   console.log("\n9. Testing Server-Side User Data Isolation...");
 
-  const sarahUser = await prisma.user.findUnique({ where: { email: "s.lin@broadinstitute.org" } });
-  const alexeiUser = await prisma.user.findUnique({ where: { email: "a.petrov@anl.gov" } });
+  const sarahUser = await prisma.user.findUnique({ where: { email: "armaan.singh@iisc.ac.in" } });
+  const alexeiUser = await prisma.user.findUnique({ where: { email: "ayush.roy@iitd.ac.in" } });
   assert(!!sarahUser && !!alexeiUser, "Multiple distinct researcher accounts exist in DB");
 
   // Verify Elena's isolated experiments

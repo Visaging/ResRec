@@ -1,0 +1,12 @@
+<svg width="640" height="180" viewBox="0 0 640 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="640" height="180" rx="24" fill="#0B1428"/>
+  <rect x="24" y="24" width="132" height="132" rx="28" fill="#182452"/>
+  <rect x="52" y="99" width="16" height="38" rx="8" fill="#41499D"/>
+  <rect x="76" y="78" width="16" height="59" rx="8" fill="#5961D7"/>
+  <rect x="100" y="48" width="16" height="89" rx="8" fill="#8587F4"/>
+  <path d="M96 88L116 108L144 64" stroke="#2DD8C2" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="174" y="45" width="3" height="90" rx="1.5" fill="#253353"/>
+  <text x="205" y="91" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="72" font-weight="700" letter-spacing="-3">Res</text>
+  <text x="348" y="91" fill="#8587F4" font-family="Arial, Helvetica, sans-serif" font-size="72" font-weight="700" letter-spacing="-3">Rec</text>
+  <text x="207" y="125" fill="#9AA8C7" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="600" letter-spacing="5">RESEARCH RECTIFIER</text>
+</svg>

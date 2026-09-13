@@ -49,6 +49,7 @@ import {
   CheckCircle2,
   AlertCircle,
   RotateCcw,
+  X,
 } from "lucide-react";
 
 function NodeIcon({ type }: { type: ProvenanceNodeType }) {
@@ -59,6 +60,14 @@ function NodeIcon({ type }: { type: ProvenanceNodeType }) {
       return <FlaskConical {...iconProps} />;
     case "measurement":
       return <Activity {...iconProps} />;
+    case "instrument":
+      return <Database {...iconProps} />;
+    case "sample":
+      return <Layers {...iconProps} />;
+    case "correction":
+      return <RotateCcw {...iconProps} />;
+    case "dataset_version":
+      return <Database {...iconProps} />;
     case "dataset":
       return <Database {...iconProps} />;
     case "processing":
@@ -91,6 +100,30 @@ const nodeTypeColors: Record<
     stroke: "var(--color-primary)",
     label: "Measurement",
     textClass: "text-primary",
+  },
+  instrument: {
+    fill: "color-mix(in srgb, var(--color-info) 14%, var(--color-surface))",
+    stroke: "var(--color-info)",
+    label: "Instrument",
+    textClass: "text-info",
+  },
+  sample: {
+    fill: "color-mix(in srgb, #a855f7 14%, var(--color-surface))",
+    stroke: "#a855f7",
+    label: "Sample",
+    textClass: "text-purple-600 dark:text-purple-400",
+  },
+  correction: {
+    fill: "color-mix(in srgb, var(--color-error) 14%, var(--color-surface))",
+    stroke: "var(--color-error)",
+    label: "Correction",
+    textClass: "text-error",
+  },
+  dataset_version: {
+    fill: "color-mix(in srgb, var(--color-warning) 14%, var(--color-surface))",
+    stroke: "var(--color-warning)",
+    label: "Dataset Version",
+    textClass: "text-warning",
   },
   dataset: {
     fill: "color-mix(in srgb, var(--color-warning) 14%, var(--color-surface))",
@@ -147,6 +180,9 @@ function GraphNodeSvg({
 }) {
   const color = nodeTypeColors[node.type] ?? nodeTypeColors.experiment;
   const isFailed = !node.verified || node.status === "failed";
+  const labelLines = node.label.length > 18
+    ? [`${node.label.slice(0, 17)}...`, node.label.slice(17, 32)]
+    : [node.label];
 
   return (
     <motion.g
@@ -201,6 +237,7 @@ function GraphNodeSvg({
         fill={color.fill}
         stroke={isFailed ? "var(--color-error)" : color.stroke}
         strokeWidth={isFailed ? 2.5 / scale : 2 / scale}
+        filter="url(#provenance-node-shadow)"
         whileHover={{ scale: 1.1 }}
         transition={{ duration: 0.15 }}
       />
@@ -250,19 +287,32 @@ function GraphNodeSvg({
         fill="var(--color-ink)"
         fontSize={11 / scale}
         fontWeight={isSelected ? "600" : "500"}
+        stroke="var(--color-surface)"
+        strokeWidth={4 / scale}
+        strokeLinejoin="round"
+        paintOrder="stroke fill"
         style={{ pointerEvents: "none" }}
       >
-        {node.label.length > 22 ? `${node.label.slice(0, 20)}...` : node.label}
+        <title>{node.label}</title>
+        {labelLines.map((line, index) => (
+          <tspan key={`${node.id}-label-${index}`} x={node.x} dy={index === 0 ? 0 : 13 / scale}>
+            {line}
+          </tspan>
+        ))}
       </text>
 
       {/* Node Subtitle (Type) */}
       <text
         x={node.x}
-        y={node.y + 66 / scale}
+        y={node.y + (labelLines.length > 1 ? 82 : 68) / scale}
         textAnchor="middle"
         fill="var(--color-ink-muted)"
         fontSize={9 / scale}
         className="uppercase tracking-wider"
+        stroke="var(--color-surface)"
+        strokeWidth={3 / scale}
+        strokeLinejoin="round"
+        paintOrder="stroke fill"
         style={{ pointerEvents: "none" }}
       >
         {node.type}
@@ -359,7 +409,11 @@ export default function ProvenancePage() {
   >(
     new Set([
       "experiment",
+      "instrument",
+      "sample",
       "measurement",
+      "correction",
+      "dataset_version",
       "dataset",
       "processing",
       "analysis",
@@ -373,6 +427,7 @@ export default function ProvenancePage() {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [isGraphExpanded, setIsGraphExpanded] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
 
   // Load experiments list
@@ -605,7 +660,11 @@ export default function ProvenancePage() {
             {(
               [
                 "experiment",
+                "instrument",
+                "sample",
                 "measurement",
+                "correction",
+                "dataset_version",
                 "dataset",
                 "processing",
                 "analysis",
@@ -651,11 +710,36 @@ export default function ProvenancePage() {
       </Card>
 
       {/* Main Graph Grid */}
+      <AnimatePresence>
+        {isGraphExpanded && (
+          <motion.div
+            key="graph-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsGraphExpanded(false)}
+            className="fixed inset-0 z-[55] bg-background/75 backdrop-blur-sm"
+            aria-hidden="true"
+          />
+        )}
+      </AnimatePresence>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* SVG Graph Canvas Card */}
-        <Card className="lg:col-span-2 p-0 overflow-hidden relative border border-border">
+        <Card
+          className={`lg:col-span-2 p-0 overflow-hidden relative border border-border ${
+            isGraphExpanded
+              ? "fixed inset-x-4 top-20 bottom-4 z-[60] w-auto shadow-2xl flex flex-col"
+              : ""
+          }`}
+        >
+          {isGraphExpanded && (
+            <div className="absolute top-4 left-4 z-10 bg-surface/90 backdrop-blur-xs border border-border px-3 py-2 shadow-lg">
+              <p className="text-xs font-semibold text-ink">Interactive Provenance Graph</p>
+              <p className="text-[10px] text-ink-muted mt-0.5">Expanded canvas view</p>
+            </div>
+          )}
           {/* Canvas Floating Controls */}
-          <div className="absolute top-4 right-4 z-10 flex items-center gap-2 bg-surface/90 backdrop-blur-xs p-1 border border-border shadow-xs">
+          <div className="absolute top-4 right-4 z-10 flex items-center gap-2 bg-surface/90 backdrop-blur-xs p-1.5 rounded-lg border border-border shadow-lg ring-1 ring-border/30">
             <Button
               variant="ghost"
               size="sm"
@@ -687,6 +771,15 @@ export default function ProvenancePage() {
             <Button
               variant="ghost"
               size="sm"
+              onClick={() => setIsGraphExpanded((expanded) => !expanded)}
+              title={isGraphExpanded ? "Close expanded graph" : "Open expanded graph"}
+              className="h-8 w-8 p-0"
+            >
+              {isGraphExpanded ? <X className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={handleExportSvg}
               title="Export SVG"
               className="h-8 w-8 p-0"
@@ -696,11 +789,21 @@ export default function ProvenancePage() {
           </div>
 
           {/* SVG Canvas Area */}
-          <div className="bg-surface h-[720px] overflow-hidden select-none relative">
+          <div
+            className={`bg-surface overflow-hidden select-none relative ${
+              isGraphExpanded ? "h-full flex-1 min-h-0" : "h-[1040px]"
+            }`}
+            style={{
+              background:
+                "radial-gradient(circle at 52% 38%, color-mix(in srgb, var(--color-primary) 8%, var(--color-surface)), var(--color-surface) 62%)",
+            }}
+          >
             <svg
               ref={svgRef}
               width="100%"
               height="100%"
+              viewBox="0 0 1000 1040"
+              preserveAspectRatio="xMidYMin meet"
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
@@ -710,6 +813,15 @@ export default function ProvenancePage() {
             >
               {/* Background grid pattern */}
               <defs>
+                <filter id="provenance-node-shadow" x="-30%" y="-30%" width="160%" height="160%">
+                  <feDropShadow
+                    dx="0"
+                    dy="4"
+                    stdDeviation="4"
+                    floodColor="var(--color-background)"
+                    floodOpacity="0.35"
+                  />
+                </filter>
                 <pattern
                   id="provenance-grid"
                   width="40"
@@ -780,7 +892,7 @@ export default function ProvenancePage() {
           </div>
 
           {/* Visual Node Types Legend */}
-          <div className="absolute bottom-3 left-3 bg-surface/95 backdrop-blur-xs border border-border p-2.5 shadow-xs max-w-xs">
+          <div className="absolute bottom-3 left-3 bg-surface/95 backdrop-blur-xs rounded-lg border border-border p-3 shadow-lg ring-1 ring-border/30 max-w-xs">
             <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider mb-2">
               Lineage Node Types
             </p>
@@ -788,7 +900,11 @@ export default function ProvenancePage() {
               {(
                 [
                   "experiment",
+                  "instrument",
+                  "sample",
                   "measurement",
+                  "correction",
+                  "dataset_version",
                   "dataset",
                   "processing",
                   "analysis",

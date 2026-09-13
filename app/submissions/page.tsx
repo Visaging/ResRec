@@ -44,7 +44,7 @@ export default function SubmissionsPage() {
     experimentId: "EXP-2026-0042",
     abstract: "",
     author: user?.name || "Dr. Investigator",
-    institution: user?.institutionName || "Stanford University",
+    institution: user?.institutionName || "Indian Institute of Technology Bombay",
   });
 
   useEffect(() => {
@@ -107,7 +107,7 @@ export default function SubmissionsPage() {
         experimentId: experimentsList[0] || "EXP-2026-0042",
         abstract: "",
         author: "Dr. Sarah Chen",
-        institution: "Stanford University",
+        institution: "Indian Institute of Technology Bombay",
       });
       showNotification(`Submission ${created.id} registered for peer review!`);
     } catch (err: any) {

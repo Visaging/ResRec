@@ -28,23 +28,23 @@ async function main() {
   await prisma.institution.deleteMany();
 
   // 2. Institutions
-  const stanford = await prisma.institution.create({
+  const iitBombay = await prisma.institution.create({
     data: {
-      name: "Stanford Energy Institute",
+      name: "IIT Bombay Energy Materials Institute",
       department: "Materials Science & Electrochemical Engineering",
     },
   });
 
-  const broad = await prisma.institution.create({
+  const iiscBengaluru = await prisma.institution.create({
     data: {
-      name: "Broad Institute of MIT and Harvard",
+      name: "Indian Institute of Science Genome Engineering Centre",
       department: "Genome Editing Core",
     },
   });
 
-  const argonne = await prisma.institution.create({
+  const iitDelhi = await prisma.institution.create({
     data: {
-      name: "Argonne National Laboratory",
+      name: "IIT Delhi High Pressure Materials Laboratory",
       department: "High Pressure Condensed Matter Physics",
     },
   });
@@ -54,11 +54,11 @@ async function main() {
 
   const elena = await prisma.user.create({
     data: {
-      name: "Dr. Elena Rostova",
-      email: "e.rostova@stanford.edu",
+      name: "Akshat Agrawal",
+      email: "akshat.agrawal@iitb.ac.in",
       role: "RESEARCHER",
-      institutionId: stanford.id,
-      institutionName: "Stanford University",
+      institutionId: iitBombay.id,
+      institutionName: "Indian Institute of Technology Bombay",
       department: "Department of Materials Science and Engineering",
       passwordHash: defaultAuth.hash,
       salt: defaultAuth.salt,
@@ -67,11 +67,11 @@ async function main() {
 
   const marcus = await prisma.user.create({
     data: {
-      name: "Dr. Marcus Vance",
-      email: "m.vance@stanford.edu",
+      name: "Abhinav Raturi",
+      email: "abhinav.raturi@iitm.ac.in",
       role: "REVIEWER",
-      institutionId: stanford.id,
-      institutionName: "Stanford University",
+      institutionId: iitBombay.id,
+      institutionName: "Indian Institute of Technology Madras",
       department: "Department of Materials Science and Engineering",
       passwordHash: defaultAuth.hash,
       salt: defaultAuth.salt,
@@ -80,11 +80,11 @@ async function main() {
 
   const sarah = await prisma.user.create({
     data: {
-      name: "Dr. Sarah Lin",
-      email: "s.lin@broadinstitute.org",
+      name: "Armaan Singh",
+      email: "armaan.singh@iisc.ac.in",
       role: "RESEARCHER",
-      institutionId: broad.id,
-      institutionName: "Broad Institute of MIT and Harvard",
+      institutionId: iiscBengaluru.id,
+      institutionName: "Indian Institute of Science, Bengaluru",
       department: "Genomics & CRISPR Therapeutics",
       passwordHash: defaultAuth.hash,
       salt: defaultAuth.salt,
@@ -93,11 +93,11 @@ async function main() {
 
   const alexei = await prisma.user.create({
     data: {
-      name: "Dr. Alexei Petrov",
-      email: "a.petrov@anl.gov",
+      name: "Ayush Roy",
+      email: "ayush.roy@iitd.ac.in",
       role: "RESEARCHER",
-      institutionId: argonne.id,
-      institutionName: "Argonne National Laboratory",
+      institutionId: iitDelhi.id,
+      institutionName: "Indian Institute of Technology Delhi",
       department: "High Pressure Condensed Matter Physics",
       passwordHash: defaultAuth.hash,
       salt: defaultAuth.salt,
@@ -178,7 +178,7 @@ async function main() {
       objective: "Evaluate degradation mechanisms and thermal runaway precursors during 4C ultrafast charging cycles under controlled temperature gradients (25°C to 65°C).",
       principalInvestigator: "Dr. Elena Rostova",
       researchGroup: "Advanced Energy Storage Group",
-      institutionId: stanford.id,
+      institutionId: iitBombay.id,
       instrumentId: potentiostat.id,
       instrumentName: potentiostat.name,
       sampleId: batterySample.id,
@@ -558,7 +558,7 @@ async function main() {
       title: "Thermal Degradation and Precursor Detection in Ultra-Fast Charged High-Nickel Pouch Cells",
       abstract: "Investigation of solid electrolyte interphase (SEI) transition kinetics in 3.2Ah NMC-811 pouch cells under 4C rapid charge cycling with sealed cryptographically bound receipts.",
       authors: JSON.stringify(["Dr. Elena Rostova", "Dr. Marcus Vance", "A. Chen"]),
-      institution: "Stanford Energy Institute",
+      institution: "IIT Bombay Energy Materials Institute",
       status: "under_review",
       totalRecords: 48,
       verifiedRecords: 48,
@@ -580,7 +580,7 @@ async function main() {
       objective: "Quantify cleavage rates (k_cat/K_M) across mismatched guide RNA targets using continuous targeted NGS sequencing.",
       principalInvestigator: "Dr. Sarah Lin",
       researchGroup: "Genome Editing Core",
-      institutionId: broad.id,
+      institutionId: iiscBengaluru.id,
       instrumentId: ngsSequencer.id,
       instrumentName: ngsSequencer.name,
       sampleId: crisprSample.id,
@@ -711,7 +711,7 @@ async function main() {
       objective: "Determine critical transition temperature Tc and upper critical magnetic field Hc2(0) in cubic LaH10.",
       principalInvestigator: "Dr. Alexei Petrov",
       researchGroup: "High Pressure Physics Laboratory",
-      institutionId: argonne.id,
+      institutionId: iitDelhi.id,
       instrumentId: dacCryostat.id,
       instrumentName: dacCryostat.name,
       sampleId: hydrideSample.id,

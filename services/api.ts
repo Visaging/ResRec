@@ -561,29 +561,50 @@ export async function getProvenanceGraph(experimentId?: string): Promise<Provena
   try {
     const data = await fetchJson<any>(`/api/experiments/${encodeURIComponent(expId)}/provenance`);
 
-    // Assign layout coordinates (x, y) dynamically based on node type
-    const typeX: Record<string, number> = {
-      instrument: 80,
-      sample: 80,
-      experiment: 260,
-      measurement: 480,
-      correction: 480,
-      dataset_version: 700,
-      dataset: 700,
-      processing: 900,
-      analysis: 1100,
-      result: 1300,
-      submission: 1500,
+    // Assign centered coordinates by vertical stage so each row forms a readable pyramid.
+    const stageOrder = [
+      "experiment",
+      "sample",
+      "instrument",
+      "measurement",
+      "correction",
+      "dataset_version",
+      "dataset",
+      "processing",
+      "analysis",
+      "result",
+      "submission",
+      "evidence",
+    ];
+    const stageForType: Record<string, string> = {
+      experiment: "experiment",
+      sample: "sample",
+      instrument: "sample",
+      measurement: "measurement",
+      correction: "measurement",
+      dataset_version: "dataset",
+      dataset: "dataset",
+      processing: "processing",
+      analysis: "analysis",
+      result: "result",
+      submission: "submission",
+      evidence: "evidence",
     };
-
-    const typeCounters: Record<string, number> = {};
+    const stageCounters: Record<string, number> = {};
+    const stageCounts: Record<string, number> = {};
+    for (const node of data.nodes as any[]) {
+      const stage = stageForType[node.type] || "measurement";
+      stageCounts[stage] = (stageCounts[stage] || 0) + 1;
+    }
 
     const nodes: ProvenanceGraphNode[] = data.nodes.map((n: any) => {
       const t = n.type || "measurement";
-      typeCounters[t] = (typeCounters[t] || 0) + 1;
-      const index = typeCounters[t];
-      const x = typeX[t] || 400;
-      const y = 80 + index * 95;
+      const stage = stageForType[t] || "measurement";
+      stageCounters[stage] = (stageCounters[stage] || 0) + 1;
+      const index = stageCounters[stage] - 1;
+      const count = stageCounts[stage] || 1;
+      const x = 500 + (index - (count - 1) / 2) * 145;
+      const y = 70 + stageOrder.indexOf(stage) * 88;
 
       return {
         id: n.id,

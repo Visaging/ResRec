@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, Suspense } from "react";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -21,38 +22,38 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const DEMO_ACCOUNTS = [
   {
-    name: "Dr. Elena Rostova",
-    email: "e.rostova@stanford.edu",
+    name: "Akshat Agrawal",
+    email: "akshat.agrawal@iitb.ac.in",
     password: "password123",
     role: "Lead Investigator",
-    institution: "Stanford University",
+    institution: "Indian Institute of Technology Bombay",
     department: "Materials Science & Battery Storage",
     badge: "EXP-0042 Owner",
   },
   {
-    name: "Dr. Sarah Lin",
-    email: "s.lin@broadinstitute.org",
+    name: "Armaan Singh",
+    email: "armaan.singh@iisc.ac.in",
     password: "password123",
     role: "Principal Investigator",
-    institution: "Broad Institute",
+    institution: "Indian Institute of Science, Bengaluru",
     department: "Genomics & CRISPR Therapeutics",
     badge: "EXP-0038 Owner",
   },
   {
-    name: "Dr. Alexei Petrov",
-    email: "a.petrov@anl.gov",
+    name: "Ayush Roy",
+    email: "ayush.roy@iitd.ac.in",
     password: "password123",
     role: "Senior Physicist",
-    institution: "Argonne National Lab",
+    institution: "Indian Institute of Technology Delhi",
     department: "High Pressure Condensed Matter",
     badge: "EXP-0019 Owner",
   },
   {
-    name: "Dr. Marcus Vance",
-    email: "m.vance@stanford.edu",
+    name: "Abhinav Raturi",
+    email: "abhinav.raturi@iitm.ac.in",
     password: "password123",
     role: "Peer Reviewer",
-    institution: "Stanford University",
+    institution: "Indian Institute of Technology Madras",
     department: "Materials Science & Review Board",
     badge: "Reviewer",
   },
@@ -148,18 +149,14 @@ function LoginForm() {
           className="lg:col-span-5 flex flex-col justify-between space-y-6"
         >
           <div>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-primary flex items-center justify-center text-primary-ink font-bold text-lg shadow-sm">
-                R
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-ink tracking-tight font-serif">
-                  ResRec
-                </h1>
-                <p className="text-xs text-ink-faint">
-                  Research Integrity & Provenance Platform
-                </p>
-              </div>
+            <div className="mb-6">
+              <Image
+                src="/resrec-logo.svg"
+                alt="ResRec"
+                width={280}
+                height={79}
+                className="w-64 h-auto shadow-sm"
+              />
             </div>
 
             <div className="space-y-4">
@@ -335,7 +332,7 @@ function LoginForm() {
                       <Building2 className="absolute left-3 top-2.5 w-4 h-4 text-ink-faint" />
                       <input
                         type="text"
-                        placeholder="e.g. Stanford University"
+                        placeholder="e.g. Indian Institute of Technology Bombay"
                         value={institutionName}
                         onChange={(e) => setInstitutionName(e.target.value)}
                         className="w-full pl-9 pr-3 py-2 text-sm bg-surface-elevated border border-border text-ink focus:outline-none focus:border-primary transition-colors"

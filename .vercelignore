@@ -1,0 +1,14 @@
+# Local development and documentation files not needed by the Vercel build
+AGENTS.md
+CLAUDE.md
+API.md
+REDESIGN_V2_SUMMARY.md
+scripts/
+
+# Local generated artifacts
+.next/
+node_modules/
+tsconfig.tsbuildinfo
+.env
+.env.local
+.vercel/

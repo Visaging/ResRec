@@ -3,6 +3,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef, useEffect } from "react";
@@ -87,17 +88,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <header className="h-14 bg-surface border-b border-border">
           <div className="flex items-center justify-between h-full px-6 max-w-7xl mx-auto">
             <Link href="/" className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-primary flex items-center justify-center text-primary-ink font-bold text-sm shadow-sm">
-                R
-              </div>
-              <div>
-                <h1 className="text-base font-semibold text-ink tracking-tight font-serif">
-                  ResRec
-                </h1>
-                <p className="text-xs text-ink-faint leading-none">
-                  Research Evidence Infrastructure
-                </p>
-              </div>
+              <Image
+                src="/resrec-logo.svg"
+                alt="ResRec"
+                width={160}
+                height={45}
+                className="w-40 h-auto shadow-sm"
+              />
             </Link>
 
             <div className="flex items-center gap-4">
@@ -121,7 +118,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   const initials = getInitials(user?.name);
-  const institutionDisplay = user?.institutionName || "Stanford University";
+  const institutionDisplay = user?.institutionName || "Indian Institute of Technology Bombay";
 
   return (
     <div className="min-h-screen bg-background">
@@ -135,17 +132,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 animate={{ opacity: 1, x: 0 }}
                 className="flex items-center gap-3"
               >
-                <div className="w-8 h-8 bg-primary flex items-center justify-center text-primary-ink font-bold text-sm shadow-sm">
-                  R
-                </div>
-                <div>
-                  <h1 className="text-base font-semibold text-ink tracking-tight font-serif">
-                    ResRec
-                  </h1>
-                  <p className="text-xs text-ink-faint leading-none">
-                    Research Evidence Infrastructure
-                  </p>
-                </div>
+                <Image
+                  src="/resrec-logo.svg"
+                  alt="ResRec"
+                  width={160}
+                  height={45}
+                  className="w-40 h-auto shadow-sm"
+                />
               </motion.div>
             </Link>
           </div>

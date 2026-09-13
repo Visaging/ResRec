@@ -58,7 +58,7 @@ export async function GET(
 
     interface ProvenanceNode {
       id: string;
-      type: "experiment" | "sample" | "instrument" | "measurement" | "correction" | "dataset_version" | "processing" | "analysis" | "result" | "submission";
+      type: "experiment" | "sample" | "instrument" | "measurement" | "correction" | "dataset_version" | "processing" | "analysis" | "result" | "submission" | "evidence";
       label: string;
       sublabel?: string;
       status: string;
@@ -138,7 +138,31 @@ export async function GET(
       });
     });
 
-    // 3. Representative Measurements (show initial, corrections, and key milestones)
+    // 3. Sample stage
+    let sampleNodeId: string | null = null;
+    if (experiment.sampleName) {
+      sampleNodeId = `node-sample-${experiment.id}`;
+      nodes.push({
+        id: sampleNodeId,
+        type: "sample",
+        label: experiment.sampleName,
+        sublabel: "Research sample",
+        status: "verified",
+        timestamp: experiment.createdAt.toISOString(),
+        metadata: {
+          source: "Experiment configuration",
+        },
+      });
+      edges.push({
+        id: `edge-${expNodeId}-${sampleNodeId}`,
+        source: expNodeId,
+        target: sampleNodeId,
+        label: "uses sample",
+        status: "verified",
+      });
+    }
+
+    // 4. Representative Measurements (show initial, corrections, and key milestones)
     const sampledMeasurements = experiment.measurements.filter(
       (m, idx) =>
         idx < 5 ||
@@ -147,8 +171,10 @@ export async function GET(
         idx === experiment.measurements.length - 1
     );
 
+    const measurementNodeIds: string[] = [];
     for (const m of sampledMeasurements) {
       const mNodeId = `node-meas-${m.id}`;
+      measurementNodeIds.push(mNodeId);
       const isCorrection = Boolean(m.correctionOf);
       nodes.push({
         id: mNodeId,
@@ -177,8 +203,8 @@ export async function GET(
         });
       } else {
         edges.push({
-          id: `edge-${expNodeId}-${mNodeId}`,
-          source: expNodeId,
+          id: `edge-${sampleNodeId || expNodeId}-${mNodeId}`,
+          source: sampleNodeId || expNodeId,
           target: mNodeId,
           label: "recorded",
           status: m.status,
@@ -186,10 +212,12 @@ export async function GET(
       }
     }
 
-    // 4. Dataset Versions
+    // 5. Dataset Versions
+    const datasetNodeIds: string[] = [];
     for (const ds of experiment.datasets) {
       for (const ver of ds.versions) {
         const verNodeId = `node-dsver-${ver.id}`;
+        datasetNodeIds.push(verNodeId);
         nodes.push({
           id: verNodeId,
           type: "dataset_version",
@@ -205,20 +233,32 @@ export async function GET(
           },
         });
 
-        // If version 1, link from experiment/measurements
+        // Version 1 is assembled from the measurement stage.
         if (ver.version === 1) {
-          edges.push({
-            id: `edge-${expNodeId}-${verNodeId}`,
-            source: expNodeId,
-            target: verNodeId,
-            label: "assembled into raw dataset",
-            status: ver.status,
-          });
+          if (measurementNodeIds.length > 0) {
+            measurementNodeIds.forEach((measurementNodeId) => {
+              edges.push({
+                id: `edge-${measurementNodeId}-${verNodeId}`,
+                source: measurementNodeId,
+                target: verNodeId,
+                label: "assembled into raw dataset",
+                status: ver.status,
+              });
+            });
+          } else {
+            edges.push({
+              id: `edge-${expNodeId}-${verNodeId}`,
+              source: expNodeId,
+              target: verNodeId,
+              label: "assembled into raw dataset",
+              status: ver.status,
+            });
+          }
         }
       }
     }
 
-    // 5. Processing Events
+    // 6. Processing Events
     for (const proc of experiment.processingEvents) {
       const procNodeId = `node-proc-${proc.id}`;
       nodes.push({
@@ -258,9 +298,12 @@ export async function GET(
       }
     }
 
-    // 6. Analysis Nodes
+    // 7. Analysis Nodes
+    const analysisNodeIds: string[] = [];
+    const resultNodeIds: string[] = [];
     for (const an of experiment.analyses) {
       const anNodeId = `node-an-${an.id}`;
+      analysisNodeIds.push(anNodeId);
       nodes.push({
         id: anNodeId,
         type: "analysis",
@@ -300,6 +343,7 @@ export async function GET(
       // 7. Results
       for (const res of an.results) {
         const resNodeId = `node-res-${res.id}`;
+        resultNodeIds.push(resNodeId);
         nodes.push({
           id: resNodeId,
           type: "result",
@@ -319,8 +363,10 @@ export async function GET(
     }
 
     // 8. Submissions
+    const submissionNodeIds: string[] = [];
     for (const sub of experiment.submissions) {
       const subNodeId = `node-sub-${sub.id}`;
+      submissionNodeIds.push(subNodeId);
       nodes.push({
         id: subNodeId,
         type: "submission",
@@ -336,11 +382,48 @@ export async function GET(
       });
 
       edges.push({
-        id: `edge-${expNodeId}-${subNodeId}`,
-        source: expNodeId,
+        id: `edge-${(resultNodeIds[0] || analysisNodeIds[0] || datasetNodeIds[0] || expNodeId)}-${subNodeId}`,
+        source: resultNodeIds[0] || analysisNodeIds[0] || datasetNodeIds[0] || expNodeId,
         target: subNodeId,
         label: "published package",
         status: sub.integrityStatus,
+      });
+    }
+
+    // 9. Evidence ledger stage
+    if (experiment.evidenceRecords.length > 0) {
+      const evidenceNodeId = `node-evidence-${experiment.id}`;
+      nodes.push({
+        id: evidenceNodeId,
+        type: "evidence",
+        label: "CooL Evidence Ledger",
+        sublabel: `${experiment.evidenceRecords.length} sealed records`,
+        status: experiment.integrityStatus,
+        timestamp: experiment.evidenceRecords[experiment.evidenceRecords.length - 1].issuedAt.toISOString(),
+        evidenceRecordId: experiment.evidenceRecordId,
+        metadata: {
+          records: experiment.evidenceRecords.length,
+          verification: experiment.integrityStatus,
+        },
+      });
+
+      const evidenceSources = submissionNodeIds.length > 0
+        ? submissionNodeIds
+        : resultNodeIds.length > 0
+          ? resultNodeIds
+          : analysisNodeIds.length > 0
+            ? analysisNodeIds
+            : datasetNodeIds.length > 0
+              ? datasetNodeIds
+              : [expNodeId];
+      evidenceSources.forEach((sourceId) => {
+        edges.push({
+          id: `edge-${sourceId}-${evidenceNodeId}`,
+          source: sourceId,
+          target: evidenceNodeId,
+          label: "sealed as evidence",
+          status: "verified",
+        });
       });
     }
 

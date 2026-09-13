@@ -94,8 +94,12 @@ export interface EvidenceRecord {
 
 export type ProvenanceNodeType =
   | "experiment"
+  | "instrument"
+  | "sample"
   | "measurement"
+  | "correction"
   | "dataset"
+  | "dataset_version"
   | "processing"
   | "analysis"
   | "result"
