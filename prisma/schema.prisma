@@ -1,0 +1,330 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id              String       @id @default(uuid())
+  name            String
+  email           String       @unique
+  passwordHash    String?
+  salt            String?
+  role            String       @default("RESEARCHER") // RESEARCHER, REVIEWER, ADMIN
+  institutionName String?
+  department      String?
+  institutionId   String?
+  institution     Institution? @relation(fields: [institutionId], references: [id])
+  sessions        Session[]
+  experiments     Experiment[]
+  submissions     Submission[]
+  reports         Report[]
+  createdAt       DateTime     @default(now())
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Institution {
+  id          String   @id @default(uuid())
+  name        String
+  department  String?
+  users       User[]
+  experiments Experiment[]
+  createdAt   DateTime @default(now())
+}
+
+model Instrument {
+  id                String        @id @default(uuid())
+  name              String
+  model             String
+  serialNumber      String        @unique
+  calibrationStatus String        @default("calibrated")
+  lastCalibratedAt  DateTime      @default(now())
+  measurements      Measurement[]
+  createdAt         DateTime      @default(now())
+}
+
+model Sample {
+  id               String        @id @default(uuid())
+  name             String
+  type             String
+  batchId          String
+  preparationNotes String?
+  measurements     Measurement[]
+  createdAt        DateTime      @default(now())
+}
+
+model Experiment {
+  id                    String            @id @default(uuid())
+  publicId              String            @unique // e.g. EXP-2026-0042
+  userId                String?
+  user                  User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title                 String
+  description           String?
+  objective             String
+  principalInvestigator String
+  researchGroup         String
+  institutionId         String?
+  institution           Institution?      @relation(fields: [institutionId], references: [id])
+  instrumentId          String?
+  instrumentName        String?
+  sampleId              String?
+  sampleName            String?
+  protocol              String?
+  environment           String?
+  status                String            @default("active") // active, completed, under_review, integrity_issue
+  integrityStatus       String            @default("not_checked") // verified, failed, not_provided, not_checked
+  evidenceRecordId      String?
+  recordCount           Int               @default(0)
+  evidenceCount         Int               @default(0)
+  measurements          Measurement[]
+  datasets              Dataset[]
+  processingEvents      ProcessingEvent[]
+  analyses              Analysis[]
+  results               Result[]
+  evidenceRecords       EvidenceRecord[]
+  submissions           Submission[]
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  @@index([userId])
+}
+
+model Measurement {
+  id               String          @id @default(uuid())
+  publicId         String          @unique // e.g. MEAS-00042
+  experimentId     String
+  experiment       Experiment      @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  trialNumber      Int
+  timestamp        DateTime        @default(now())
+  value            Float
+  unit             String
+  instrumentName   String?
+  instrumentId     String?
+  instrument       Instrument?     @relation(fields: [instrumentId], references: [id])
+  sampleId         String?
+  sample           Sample?         @relation(fields: [sampleId], references: [id])
+  metadata         String?         // JSON string for raw metadata/parameters
+  status           String          @default("verified") // verified, failed, not_provided, not_checked
+  evidenceRecordId String?
+  evidenceRecord   EvidenceRecord? @relation(fields: [evidenceRecordId], references: [id])
+  correctionOf     String?         // ID of original measurement if this is a corrected record
+  correctionReason String?
+  correctionNote   String?
+  correctionsAsOrig Correction[]   @relation("OriginalMeasurement")
+  correctionsAsCorr Correction[]   @relation("CorrectedMeasurement")
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([experimentId])
+}
+
+model Correction {
+  id                     String      @id @default(uuid())
+  originalMeasurementId  String
+  originalMeasurement    Measurement @relation("OriginalMeasurement", fields: [originalMeasurementId], references: [id], onDelete: Cascade)
+  correctedMeasurementId String
+  correctedMeasurement   Measurement @relation("CorrectedMeasurement", fields: [correctedMeasurementId], references: [id], onDelete: Cascade)
+  originalValue          Float
+  correctedValue         Float
+  reason                 String
+  note                   String?
+  operator               String?
+  evidenceRecordId       String?
+  createdAt              DateTime    @default(now())
+}
+
+model Dataset {
+  id               String           @id @default(uuid())
+  publicId         String           @unique // e.g. DS-2026-0081
+  experimentId     String
+  experiment       Experiment       @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  name             String
+  filename         String
+  description      String?
+  currentVersion   Int              @default(1)
+  recordCount      Int              @default(0)
+  fileSize         Int              @default(0)
+  sha256           String
+  coolCommitment   String
+  evidenceRecordId String?
+  status           String           @default("verified") // verified, failed, not_provided, not_checked
+  versions         DatasetVersion[]
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@index([experimentId])
+}
+
+model DatasetVersion {
+  id               String            @id @default(uuid())
+  datasetId        String
+  dataset          Dataset           @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  version          Int
+  filename         String
+  recordCount      Int
+  fileSize         Int
+  fileHash         String
+  commitment       String
+  evidenceRecordId String?
+  status           String            @default("verified")
+  filePath         String?
+  createdBy        String?
+  createdAt        DateTime          @default(now())
+  inputEvents      ProcessingEvent[] @relation("InputVersion")
+  outputEvents     ProcessingEvent[] @relation("OutputVersion")
+  analyses         Analysis[]
+
+  @@unique([datasetId, version])
+}
+
+model ProcessingEvent {
+  id                    String          @id @default(uuid())
+  experimentId          String
+  experiment            Experiment      @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  operation             String          // outlier_exclusion, normalization, baseline_correction, filtering, interpolation, statistical_transform
+  description           String
+  parameters            String?         // JSON
+  inputDatasetVersionId String?
+  inputVersion          DatasetVersion? @relation("InputVersion", fields: [inputDatasetVersionId], references: [id])
+  outputDatasetVersionId String?
+  outputVersion         DatasetVersion? @relation("OutputVersion", fields: [outputDatasetVersionId], references: [id])
+  evidenceRecordId      String?
+  createdAt             DateTime        @default(now())
+
+  @@index([experimentId])
+}
+
+model Analysis {
+  id                    String          @id @default(uuid())
+  experimentId          String
+  experiment            Experiment      @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  inputDatasetVersionId String?
+  inputDatasetVersion   DatasetVersion? @relation(fields: [inputDatasetVersionId], references: [id])
+  analysisType          String          // descriptive_statistics, linear_regression, thermal_decay_model, etc.
+  parameters            String?         // JSON
+  software              String?
+  softwareVersion       String?
+  status                String          @default("completed")
+  output                String?         // JSON
+  evidenceRecordId      String?
+  results               Result[]
+  createdAt             DateTime        @default(now())
+
+  @@index([experimentId])
+}
+
+model Result {
+  id               String      @id @default(uuid())
+  analysisId       String?
+  analysis         Analysis?   @relation(fields: [analysisId], references: [id])
+  experimentId     String
+  experiment       Experiment  @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  name             String
+  value            String
+  unit             String?
+  description      String?
+  evidenceRecordId String?
+  createdAt        DateTime    @default(now())
+
+  @@index([experimentId])
+}
+
+model Submission {
+  id              String      @id @default(uuid())
+  publicId        String      @unique // e.g. SUB-2026-1042
+  userId          String?
+  user            User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  experimentId    String?
+  experiment      Experiment? @relation(fields: [experimentId], references: [id])
+  title           String
+  abstract        String?
+  authors         String      // JSON array of strings
+  institution     String
+  status          String      @default("under_review") // draft, under_review, approved, rejected, verified, flagged
+  totalRecords    Int         @default(0)
+  verifiedRecords Int         @default(0)
+  integrityStatus String      @default("verified") // verified, failed, not_provided, not_checked
+  submittedAt     DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([userId])
+}
+
+model EvidenceRecord {
+  id                       String        @id @default(uuid())
+  publicId                 String        @unique // e.g. REC-91A2C847
+  experimentId             String?
+  experiment               Experiment?   @relation(fields: [experimentId], references: [id])
+  eventType                String        // measurement.recorded, measurement.corrected, dataset.finalized, etc.
+  recordId                 String        // CooL internal recordId
+  executionId              String        // CooL executionId
+  sequence                 Int           @default(1)
+  issuedAt                 DateTime      @default(now())
+  metadataCommitment       String
+  inputCommitment          String?
+  outputCommitment         String?
+  softwareIdentity         String?
+  softwareVersion          String?
+  digest                   String?
+  evidenceJson             String        // Complete CooL evidence receipt JSON
+  bindingVerification      String        @default("verified")
+  signatureVerification    String        @default("verified")
+  transparencyVerification String        @default("verified")
+  witnessVerification      String        @default("not_provided")
+  attestationVerification  String        @default("not_provided")
+  measurements             Measurement[]
+  createdAt                DateTime      @default(now())
+
+  @@index([experimentId])
+}
+
+model VerificationRecord {
+  id                       String   @id @default(uuid())
+  targetType               String   // experiment, dataset, measurement, receipt, submission
+  targetId                 String
+  overallStatus            String   // verified, failed, not_checked, not_provided
+  bindingStatus            String   @default("not_checked")
+  signatureStatus          String   @default("not_checked")
+  transparencyStatus       String   @default("not_checked")
+  witnessStatus            String   @default("not_provided")
+  attestationStatus        String   @default("not_provided")
+  datasetCommitmentStatus  String   @default("not_checked")
+  recordSequenceStatus     String   @default("not_checked")
+  expectedCommitment       String?
+  observedCommitment       String?
+  affectedRecord           String?
+  issues                   String?  // JSON array of strings
+  verifiedAt               DateTime @default(now())
+}
+
+model Report {
+  id           String   @id @default(uuid())
+  publicId     String   @unique // e.g. REP-2026-0012
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String
+  type         String   // verification, integrity, audit, summary
+  experimentId String?
+  generatedBy  String
+  generatedAt  DateTime @default(now())
+  sizeBytes    Int      @default(0)
+  status       String   @default("ready") // ready, generating, failed
+  summary      String
+  content      String?  // Detailed report payload/JSON
+
+  @@index([userId])
+}

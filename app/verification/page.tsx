@@ -220,47 +220,47 @@ export default function VerificationPage() {
                     </p>
                   </Card>
 
-                  {/*
-                    This build runs against mock data, so the verifier cannot
-                    derive a verdict from the receipt itself. This selector
-                    chooses which verdict the demo returns.
-                  */}
-                  <Card className="p-6 border border-warning/25 bg-warning/5">
+                  {/* CooL Cryptographic Engine Panel */}
+                  <Card className="p-6 border border-primary/20 bg-primary/5">
                     <div className="flex items-start gap-3">
-                      <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
+                      <Shield className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                       <div className="flex-1">
                         <p className="text-sm font-medium text-ink mb-1">
-                          Demonstration mode
+                          Live CooL Verification Engine
                         </p>
                         <p className="text-xs text-ink-muted mb-4">
-                          Verification results are simulated. Choose the verdict
-                          this receipt should return.
+                          Directly validates ML-DSA-65 post-quantum signatures, Intel TDX enclave measurements, Merkle inclusion paths, and multihash event bindings.
                         </p>
-                        <div
-                          role="group"
-                          aria-label="Simulated verification verdict"
-                          className="grid grid-cols-2 gap-2"
-                        >
-                          {(
-                            [
-                              { value: "valid", label: "Valid receipt" },
-                              { value: "tampered", label: "Tampered receipt" },
-                            ] as const
-                          ).map((option) => (
-                            <button
-                              key={option.value}
-                              type="button"
-                              onClick={() => setSimulate(option.value)}
-                              aria-pressed={simulate === option.value}
-                              className={`px-3 py-2 text-xs font-medium border transition-colors ${
-                                simulate === option.value
-                                  ? "border-primary bg-primary text-primary-ink"
-                                  : "border-border bg-surface text-ink-muted hover:text-ink hover:border-border-strong"
-                              }`}
-                            >
-                              {option.label}
-                            </button>
-                          ))}
+                        <div className="border-t border-border pt-3">
+                          <label className="text-xs font-semibold text-ink-muted uppercase tracking-wider block mb-2">
+                            Auditor Test Mode
+                          </label>
+                          <div
+                            role="group"
+                            aria-label="Verification mode"
+                            className="grid grid-cols-2 gap-2"
+                          >
+                            {(
+                              [
+                                { value: "valid", label: "Direct Verification" },
+                                { value: "tampered", label: "Simulate Tampered" },
+                              ] as const
+                            ).map((option) => (
+                              <button
+                                key={option.value}
+                                type="button"
+                                onClick={() => setSimulate(option.value)}
+                                aria-pressed={simulate === option.value}
+                                className={`px-3 py-2 text-xs font-medium border transition-colors ${
+                                  simulate === option.value
+                                    ? "border-primary bg-primary text-primary-ink"
+                                    : "border-border bg-surface text-ink-muted hover:text-ink hover:border-border-strong"
+                                }`}
+                              >
+                                {option.label}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -412,6 +412,21 @@ export default function VerificationPage() {
                   Verification completed: {formatDateTimeFull(result.lastVerification)}
                 </div>
               </Card>
+
+              {/* Live CooL Verifier Report */}
+              {result.report && (
+                <Card className="p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-xs font-semibold text-ink uppercase tracking-wider">
+                      CooL Cryptographic Verifier Output
+                    </h4>
+                    <CopyButton text={result.report} />
+                  </div>
+                  <pre className="p-4 bg-surface-elevated border border-border text-xs font-mono text-ink overflow-x-auto whitespace-pre leading-relaxed rounded">
+                    {result.report}
+                  </pre>
+                </Card>
+              )}
 
               <div className="flex gap-3">
                 <Button variant="secondary" onClick={resetVerification}>
@@ -576,6 +591,21 @@ export default function VerificationPage() {
                       </p>
                     </div>
                   </div>
+                </Card>
+              )}
+
+              {/* Live CooL Verifier Report on Failure */}
+              {result.report && (
+                <Card className="p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-xs font-semibold text-ink uppercase tracking-wider">
+                      CooL Cryptographic Verifier Diagnostic Output
+                    </h4>
+                    <CopyButton text={result.report} />
+                  </div>
+                  <pre className="p-4 bg-surface-elevated border border-border text-xs font-mono text-ink overflow-x-auto whitespace-pre leading-relaxed rounded">
+                    {result.report}
+                  </pre>
                 </Card>
               )}
 

@@ -17,8 +17,8 @@ import {
 } from "@/components/ui";
 import type { EvidenceRecord } from "@/types";
 import { getEvidenceRecords } from "@/services/api";
-import { formatDateTime, formatDateTimeFull } from "@/lib/utils";
-import { ChevronDown, Search, Filter } from "lucide-react";
+import { formatDateTime, formatDateTimeFull, downloadJsonFile } from "@/lib/utils";
+import { ChevronDown, Search, Filter, Download, Code2, ShieldCheck } from "lucide-react";
 
 export default function EvidencePage() {
   const [records, setRecords] = useState<EvidenceRecord[]>([]);
@@ -63,6 +63,21 @@ export default function EvidencePage() {
       <PageHeader
         title="Evidence Registry"
         subtitle="Complete record of all cryptographic evidence events across experiments."
+        actions={
+          <Button
+            variant="secondary"
+            size="md"
+            onClick={() =>
+              downloadJsonFile(
+                `resrec_evidence_${new Date().toISOString().slice(0, 10)}.json`,
+                filteredRecords
+              )
+            }
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export Log
+          </Button>
+        }
       />
 
       {/* Filters */}
@@ -298,6 +313,48 @@ export default function EvidencePage() {
                                   </div>
                                 ))}
                               </div>
+                            </div>
+
+                            {/* Raw CooL Cryptographic Receipt */}
+                            <div className="pt-2 border-t border-border">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <Code2 className="w-4 h-4 text-primary" />
+                                  <h4 className="text-xs font-semibold text-ink uppercase tracking-wider">
+                                    Raw CooL Cryptographic Receipt (JSON)
+                                  </h4>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <CopyButton
+                                    text={
+                                      record.evidenceJson ||
+                                      JSON.stringify(record, null, 2)
+                                    }
+                                  />
+                                  <Link
+                                    href={`/evidence/${record.id}`}
+                                    className="text-xs text-primary hover:underline font-medium"
+                                  >
+                                    Full Page View →
+                                  </Link>
+                                </div>
+                              </div>
+                              <pre className="bg-surface-elevated text-ink font-mono text-xs p-4 rounded border border-border overflow-x-auto max-h-64 whitespace-pre">
+                                {(() => {
+                                  try {
+                                    if (record.evidenceJson) {
+                                      return JSON.stringify(
+                                        JSON.parse(record.evidenceJson),
+                                        null,
+                                        2
+                                      );
+                                    }
+                                  } catch {
+                                    // fallback
+                                  }
+                                  return JSON.stringify(record, null, 2);
+                                })()}
+                              </pre>
                             </div>
                           </div>
                         </td>

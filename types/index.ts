@@ -23,6 +23,7 @@ export type EvidenceEventType =
 
 export interface Experiment {
   id: string;
+  publicId?: string;
   title: string;
   researcher: string;
   researchGroup: string;
@@ -71,6 +72,7 @@ export interface Dataset {
 
 export interface EvidenceRecord {
   id: string;
+  publicId?: string;
   experimentId: string;
   executionId: string;
   eventType: EvidenceEventType;
@@ -81,6 +83,8 @@ export interface EvidenceRecord {
   outputCommitment?: string;
   softwareIdentity?: string;
   softwareVersion?: string;
+  evidenceJson?: string;
+  receipt?: unknown;
   bindingVerification: VerificationStatus;
   signatureVerification: VerificationStatus;
   transparencyVerification: VerificationStatus;
@@ -88,14 +92,51 @@ export interface EvidenceRecord {
   attestationVerification: VerificationStatus;
 }
 
+export type ProvenanceNodeType =
+  | "experiment"
+  | "measurement"
+  | "dataset"
+  | "processing"
+  | "analysis"
+  | "result"
+  | "evidence"
+  | "submission";
+
 export interface ProvenanceNode {
   id: string;
-  type: "experiment" | "measurement" | "dataset" | "processing" | "analysis" | "result" | "submission";
+  type: ProvenanceNodeType;
   label: string;
   timestamp: string;
   recordId?: string;
   status: VerificationStatus;
   children?: ProvenanceNode[];
+}
+
+export interface ProvenanceGraphNode {
+  id: string;
+  type: ProvenanceNodeType;
+  label: string;
+  timestamp: string;
+  metadata: Record<string, string>;
+  verified: boolean;
+  status?: VerificationStatus;
+  recordId?: string;
+  experimentId?: string;
+  x: number;
+  y: number;
+}
+
+export interface ProvenanceGraphEdge {
+  from: string;
+  to: string;
+  label: string;
+  verified?: boolean;
+}
+
+export interface ProvenanceGraphData {
+  experimentId?: string;
+  nodes: ProvenanceGraphNode[];
+  edges: ProvenanceGraphEdge[];
 }
 
 export interface IntegrityCheck {
@@ -107,6 +148,8 @@ export interface IntegrityCheck {
   recordSequenceVerified: boolean;
   lastVerification: string;
   issues: string[];
+  report?: string;
+  verdictRaw?: any;
 }
 
 export interface ResearchSubmission {
@@ -142,9 +185,28 @@ export interface Report {
   summary: string;
 }
 
+export interface VerificationActivityDay {
+  name: string;
+  verified: number;
+  pending: number;
+  failed: number;
+}
+
 export interface DashboardMetrics {
   activeExperiments: number;
   datasets: number;
   evidenceRecords: number;
   verificationIssues: number;
+  activityChart?: VerificationActivityDay[];
+}
+
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  institutionName?: string | null;
+  department?: string | null;
+  institutionId?: string | null;
+  createdAt?: string;
 }

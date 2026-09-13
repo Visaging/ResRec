@@ -43,7 +43,43 @@ const GAUGE_RADIUS = 80;
 const GAUGE_LENGTH = Math.PI * GAUGE_RADIUS;
 const GAUGE_PATH = `M 10,90 A ${GAUGE_RADIUS},${GAUGE_RADIUS} 0 0,1 170,90`;
 
-function IntegrityHealthGauge({ percentage }: { percentage: number }) {
+function IntegrityHealthGauge({
+  percentage,
+  totalRecords,
+}: {
+  percentage: number | null;
+  totalRecords: number;
+}) {
+  if (totalRecords === 0 || percentage === null) {
+    return (
+      <div className="relative w-full max-w-[280px]">
+        <svg
+          viewBox="0 0 180 100"
+          className="w-full"
+          role="img"
+          aria-label="No evidence recorded yet"
+        >
+          <path
+            d={GAUGE_PATH}
+            stroke="var(--color-surface-sunken)"
+            strokeWidth="12"
+            fill="none"
+            strokeLinecap="round"
+          />
+        </svg>
+
+        <div className="absolute inset-x-0 bottom-0 flex flex-col items-center pointer-events-none">
+          <div className="text-3xl font-semibold text-ink-muted tabular-nums-sm">
+            —
+          </div>
+          <div className="text-xs text-ink-faint uppercase tracking-wide mt-1">
+            0 Records Recorded
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const offset = GAUGE_LENGTH - (percentage / 100) * GAUGE_LENGTH;
   const tone =
     percentage >= 99
@@ -97,22 +133,39 @@ function IntegrityHealthGauge({ percentage }: { percentage: number }) {
   );
 }
 
-const ACTIVITY_DATA = [
-  { name: "Mon", verified: 45, pending: 12, failed: 3 },
-  { name: "Tue", verified: 52, pending: 8, failed: 1 },
-  { name: "Wed", verified: 38, pending: 15, failed: 4 },
-  { name: "Thu", verified: 61, pending: 5, failed: 2 },
-  { name: "Fri", verified: 47, pending: 10, failed: 1 },
-  { name: "Sat", verified: 29, pending: 20, failed: 3 },
-  { name: "Sun", verified: 53, pending: 7, failed: 0 },
-];
+function VerificationActivityChart({
+  activityData = [],
+}: {
+  activityData?: { name: string; verified: number; pending: number; failed: number }[];
+}) {
+  const chartData = activityData.length > 0 ? activityData : [
+    { name: "Mon", verified: 0, pending: 0, failed: 0 },
+    { name: "Tue", verified: 0, pending: 0, failed: 0 },
+    { name: "Wed", verified: 0, pending: 0, failed: 0 },
+    { name: "Thu", verified: 0, pending: 0, failed: 0 },
+    { name: "Fri", verified: 0, pending: 0, failed: 0 },
+    { name: "Sat", verified: 0, pending: 0, failed: 0 },
+    { name: "Sun", verified: 0, pending: 0, failed: 0 },
+  ];
 
-function VerificationActivityChart() {
+  const totalActivity = chartData.reduce(
+    (sum, d) => sum + d.verified + d.pending + d.failed,
+    0
+  );
+
   return (
     <div>
-      <div className="h-[240px] -ml-2">
+      <div className="h-[240px] -ml-2 relative">
+        {totalActivity === 0 && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 bg-surface/60 backdrop-blur-[1px] z-10">
+            <p className="text-sm font-medium text-ink-muted">No verification activity in the last 7 days</p>
+            <p className="text-xs text-ink-faint mt-1 max-w-sm">
+              Recorded experiment measurements and datasets will automatically stream cryptographic verification receipts here.
+            </p>
+          </div>
+        )}
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={ACTIVITY_DATA} barSize={18}>
+          <BarChart data={chartData} barSize={18}>
             <CartesianGrid
               strokeDasharray="3 3"
               stroke="var(--color-border)"
@@ -131,6 +184,7 @@ function VerificationActivityChart() {
               tickLine={false}
               axisLine={false}
               width={32}
+              allowDecimals={false}
             />
             <Tooltip
               cursor={{ fill: "var(--color-surface-elevated)" }}
@@ -177,14 +231,14 @@ interface StatsProps {
 }
 
 function ResearchStatsGrid({ metrics, submissionCount, lastAuditAt }: StatsProps) {
-  const verificationRate =
-    metrics.evidenceRecords > 0
-      ? Math.round(
-          ((metrics.evidenceRecords - metrics.verificationIssues) /
-            metrics.evidenceRecords) *
-            100
-        )
-      : 100;
+  const hasEvidence = metrics.evidenceRecords > 0;
+  const verificationRate = hasEvidence
+    ? Math.round(
+        ((metrics.evidenceRecords - metrics.verificationIssues) /
+          metrics.evidenceRecords) *
+          100
+      )
+    : null;
 
   const rows: { label: string; value: string; tone?: string }[] = [
     { label: "Active experiments", value: metrics.activeExperiments.toLocaleString() },
@@ -193,8 +247,13 @@ function ResearchStatsGrid({ metrics, submissionCount, lastAuditAt }: StatsProps
     { label: "Submissions", value: submissionCount.toLocaleString() },
     {
       label: "Verification rate",
-      value: `${verificationRate}%`,
-      tone: verificationRate === 100 ? "text-success" : "text-warning",
+      value: verificationRate !== null ? `${verificationRate}%` : "—",
+      tone:
+        verificationRate === null
+          ? "text-ink-muted"
+          : verificationRate === 100
+          ? "text-success"
+          : "text-warning",
     },
     {
       label: "Open issues",
@@ -328,7 +387,7 @@ export default function DashboardPage() {
             metrics.evidenceRecords) *
             100
         )
-      : 100;
+      : null;
 
   const lastAuditAt = recentActivity[0]?.issuedAt;
 
@@ -353,14 +412,17 @@ export default function DashboardPage() {
           <h2 className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-4 self-start">
             Integrity Health
           </h2>
-          <IntegrityHealthGauge percentage={integrityPercentage} />
+          <IntegrityHealthGauge
+            percentage={integrityPercentage}
+            totalRecords={metrics.evidenceRecords}
+          />
         </Card>
 
         <Card className="p-6 lg:col-span-2">
           <h2 className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-4">
             Verification Activity
           </h2>
-          <VerificationActivityChart />
+          <VerificationActivityChart activityData={metrics.activityChart} />
         </Card>
       </div>
 

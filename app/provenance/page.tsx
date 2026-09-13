@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -11,9 +11,22 @@ import {
   Select,
   Button,
   VerificationIcon,
+  Badge,
   Skeleton,
 } from "@/components/ui";
-import { formatDateTime, formatDateTimeFull } from "@/lib/utils";
+import { formatDateTimeFull } from "@/lib/utils";
+import type {
+  ProvenanceNodeType,
+  ProvenanceGraphNode,
+  ProvenanceGraphEdge,
+  ProvenanceGraphData,
+  Experiment,
+} from "@/types";
+import {
+  getProvenanceGraph,
+  getAllProvenanceGraphs,
+  getExperiments,
+} from "@/services/api";
 import {
   ZoomIn,
   ZoomOut,
@@ -24,164 +37,21 @@ import {
   FlaskConical,
   FileText,
   Activity,
+  Cpu,
+  Award,
+  Layers,
+  ShieldCheck,
+  Search,
+  Filter,
+  ExternalLink,
+  ArrowRight,
+  ArrowLeft,
+  CheckCircle2,
+  AlertCircle,
+  RotateCcw,
 } from "lucide-react";
 
-type NodeType = "experiment" | "measurement" | "dataset" | "analysis" | "evidence";
-
-interface ProvenanceNode {
-  id: string;
-  type: NodeType;
-  label: string;
-  timestamp: string;
-  metadata: Record<string, string>;
-  verified: boolean;
-  x: number;
-  y: number;
-}
-
-interface ProvenanceEdge {
-  from: string;
-  to: string;
-  label: string;
-}
-
-// Mock provenance data
-const mockNodes: ProvenanceNode[] = [
-  {
-    id: "exp-042",
-    type: "experiment",
-    label: "EXP-2026-0042",
-    timestamp: "2026-09-01T08:00:00Z",
-    metadata: {
-      title: "Lithium-Ion Battery Thermal Cycling",
-      researcher: "Dr. Sarah Chen",
-    },
-    verified: true,
-    x: 200,
-    y: 100,
-  },
-  {
-    id: "meas-001",
-    type: "measurement",
-    label: "Trial 1",
-    timestamp: "2026-09-01T09:15:00Z",
-    metadata: {
-      temperature: "25°C",
-      sequence: "1",
-    },
-    verified: true,
-    x: 100,
-    y: 250,
-  },
-  {
-    id: "meas-002",
-    type: "measurement",
-    label: "Trial 2",
-    timestamp: "2026-09-01T10:30:00Z",
-    metadata: {
-      temperature: "45°C",
-      sequence: "2",
-    },
-    verified: true,
-    x: 200,
-    y: 250,
-  },
-  {
-    id: "meas-003",
-    type: "measurement",
-    label: "Trial 3",
-    timestamp: "2026-09-01T11:45:00Z",
-    metadata: {
-      temperature: "65°C",
-      sequence: "3",
-    },
-    verified: true,
-    x: 300,
-    y: 250,
-  },
-  {
-    id: "dataset-v1",
-    type: "dataset",
-    label: "thermal-cycling-042 v1",
-    timestamp: "2026-09-01T14:00:00Z",
-    metadata: {
-      records: "3",
-      status: "finalized",
-    },
-    verified: true,
-    x: 200,
-    y: 400,
-  },
-  {
-    id: "meas-004",
-    type: "measurement",
-    label: "Trial 4 (corrected)",
-    timestamp: "2026-09-02T09:00:00Z",
-    metadata: {
-      temperature: "85°C",
-      sequence: "4",
-      correction: "true",
-    },
-    verified: false,
-    x: 400,
-    y: 250,
-  },
-  {
-    id: "dataset-v2",
-    type: "dataset",
-    label: "thermal-cycling-042 v2",
-    timestamp: "2026-09-02T11:00:00Z",
-    metadata: {
-      records: "4",
-      status: "finalized",
-    },
-    verified: false,
-    x: 350,
-    y: 400,
-  },
-  {
-    id: "analysis-001",
-    type: "analysis",
-    label: "Statistical Analysis",
-    timestamp: "2026-09-02T15:00:00Z",
-    metadata: {
-      method: "Linear Regression",
-      confidence: "95%",
-    },
-    verified: false,
-    x: 350,
-    y: 550,
-  },
-  {
-    id: "evidence-001",
-    type: "evidence",
-    label: "REC-91A2C847",
-    timestamp: "2026-09-02T15:30:00Z",
-    metadata: {
-      commitment: "7f3a91bd...",
-      verified: "false",
-    },
-    verified: false,
-    x: 350,
-    y: 700,
-  },
-];
-
-const mockEdges: ProvenanceEdge[] = [
-  { from: "exp-042", to: "meas-001", label: "recorded" },
-  { from: "exp-042", to: "meas-002", label: "recorded" },
-  { from: "exp-042", to: "meas-003", label: "recorded" },
-  { from: "meas-001", to: "dataset-v1", label: "included in" },
-  { from: "meas-002", to: "dataset-v1", label: "included in" },
-  { from: "meas-003", to: "dataset-v1", label: "included in" },
-  { from: "exp-042", to: "meas-004", label: "recorded" },
-  { from: "meas-004", to: "dataset-v2", label: "included in" },
-  { from: "dataset-v1", to: "dataset-v2", label: "superseded by" },
-  { from: "dataset-v2", to: "analysis-001", label: "analyzed" },
-  { from: "analysis-001", to: "evidence-001", label: "generated" },
-];
-
-function NodeIcon({ type }: { type: NodeType }) {
+function NodeIcon({ type }: { type: ProvenanceNodeType }) {
   const iconProps = { className: "w-4 h-4", strokeWidth: 2 };
 
   switch (type) {
@@ -191,69 +61,118 @@ function NodeIcon({ type }: { type: NodeType }) {
       return <Activity {...iconProps} />;
     case "dataset":
       return <Database {...iconProps} />;
+    case "processing":
+      return <Cpu {...iconProps} />;
     case "analysis":
       return <GitBranch {...iconProps} />;
+    case "result":
+      return <Award {...iconProps} />;
     case "evidence":
+      return <ShieldCheck {...iconProps} />;
+    case "submission":
+      return <Layers {...iconProps} />;
+    default:
       return <FileText {...iconProps} />;
   }
 }
 
-function ProvenanceNode({
+const nodeTypeColors: Record<
+  ProvenanceNodeType,
+  { fill: string; stroke: string; label: string; textClass: string }
+> = {
+  experiment: {
+    fill: "color-mix(in srgb, var(--color-success) 14%, var(--color-surface))",
+    stroke: "var(--color-success)",
+    label: "Experiment",
+    textClass: "text-success",
+  },
+  measurement: {
+    fill: "color-mix(in srgb, var(--color-primary) 14%, var(--color-surface))",
+    stroke: "var(--color-primary)",
+    label: "Measurement",
+    textClass: "text-primary",
+  },
+  dataset: {
+    fill: "color-mix(in srgb, var(--color-warning) 14%, var(--color-surface))",
+    stroke: "var(--color-warning)",
+    label: "Dataset",
+    textClass: "text-warning",
+  },
+  processing: {
+    fill: "color-mix(in srgb, #8b5cf6 15%, var(--color-surface))",
+    stroke: "#8b5cf6",
+    label: "Processing",
+    textClass: "text-purple-600 dark:text-purple-400",
+  },
+  analysis: {
+    fill: "color-mix(in srgb, var(--color-info) 14%, var(--color-surface))",
+    stroke: "var(--color-info)",
+    label: "Analysis",
+    textClass: "text-info",
+  },
+  result: {
+    fill: "color-mix(in srgb, #06b6d4 15%, var(--color-surface))",
+    stroke: "#06b6d4",
+    label: "Result",
+    textClass: "text-cyan-600 dark:text-cyan-400",
+  },
+  evidence: {
+    fill: "color-mix(in srgb, var(--color-error) 14%, var(--color-surface))",
+    stroke: "var(--color-error)",
+    label: "Evidence",
+    textClass: "text-error",
+  },
+  submission: {
+    fill: "color-mix(in srgb, #6366f1 15%, var(--color-surface))",
+    stroke: "#6366f1",
+    label: "Submission",
+    textClass: "text-indigo-600 dark:text-indigo-400",
+  },
+};
+
+function GraphNodeSvg({
   node,
   isSelected,
+  isHighlighted,
+  isDimmed,
   onClick,
   scale,
 }: {
-  node: ProvenanceNode;
+  node: ProvenanceGraphNode;
   isSelected: boolean;
+  isHighlighted: boolean;
+  isDimmed: boolean;
   onClick: () => void;
   scale: number;
 }) {
-  // SVG shapes are painted with fill/stroke, not Tailwind bg-*/border-*
-  // utilities, so these are CSS variable references rather than classes.
-  const colors: Record<string, { fill: string; stroke: string }> = {
-    experiment: {
-      fill: "color-mix(in srgb, var(--color-success) 12%, var(--color-surface))",
-      stroke: "var(--color-success)",
-    },
-    measurement: {
-      fill: "color-mix(in srgb, var(--color-primary) 12%, var(--color-surface))",
-      stroke: "var(--color-primary)",
-    },
-    dataset: {
-      fill: "color-mix(in srgb, var(--color-warning) 12%, var(--color-surface))",
-      stroke: "var(--color-warning)",
-    },
-    analysis: {
-      fill: "color-mix(in srgb, var(--color-info) 12%, var(--color-surface))",
-      stroke: "var(--color-info)",
-    },
-    evidence: {
-      fill: "color-mix(in srgb, var(--color-error) 12%, var(--color-surface))",
-      stroke: "var(--color-error)",
-    },
-  };
-
-  const color = colors[node.type] ?? colors.experiment;
+  const color = nodeTypeColors[node.type] ?? nodeTypeColors.experiment;
+  const isFailed = !node.verified || node.status === "failed";
 
   return (
     <motion.g
-      initial={{ opacity: 0, scale: 0 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.3 }}
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{
+        opacity: isDimmed ? 0.25 : 1,
+        scale: isSelected ? 1.08 : isHighlighted ? 1.04 : 1,
+      }}
+      transition={{ duration: 0.25 }}
       style={{ cursor: "pointer" }}
-      onClick={onClick}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
     >
-      {/* Selection ring */}
+      {/* Outer focus / selection ring */}
       <AnimatePresence>
         {isSelected && (
           <motion.circle
             cx={node.x}
             cy={node.y}
-            r={50 / scale}
+            r={48 / scale}
             fill="none"
             stroke="var(--color-primary)"
             strokeWidth={3 / scale}
+            strokeDasharray="4 2"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
@@ -261,121 +180,249 @@ function ProvenanceNode({
         )}
       </AnimatePresence>
 
-      {/* Node circle */}
+      {/* Path highlight ring */}
+      {isHighlighted && !isSelected && (
+        <circle
+          cx={node.x}
+          cy={node.y}
+          r={45 / scale}
+          fill="none"
+          stroke="var(--color-primary)"
+          strokeWidth={2 / scale}
+          opacity={0.6}
+        />
+      )}
+
+      {/* Node Body Circle */}
       <motion.circle
         cx={node.x}
         cy={node.y}
-        r={40 / scale}
+        r={38 / scale}
         fill={color.fill}
-        stroke={color.stroke}
-        strokeWidth={2 / scale}
+        stroke={isFailed ? "var(--color-error)" : color.stroke}
+        strokeWidth={isFailed ? 2.5 / scale : 2 / scale}
         whileHover={{ scale: 1.1 }}
         transition={{ duration: 0.15 }}
       />
 
-      {/* Verification indicator */}
-      {!node.verified && (
+      {/* Verification status badge marker */}
+      {isFailed ? (
         <circle
-          cx={node.x + 25 / scale}
-          cy={node.y - 25 / scale}
+          cx={node.x + 24 / scale}
+          cy={node.y - 24 / scale}
           r={8 / scale}
           fill="var(--color-error)"
-          stroke="var(--color-background)"
+          stroke="var(--color-surface)"
           strokeWidth={2 / scale}
+        />
+      ) : (
+        <circle
+          cx={node.x + 24 / scale}
+          cy={node.y - 24 / scale}
+          r={6 / scale}
+          fill="var(--color-success)"
+          stroke="var(--color-surface)"
+          strokeWidth={1.5 / scale}
         />
       )}
 
-      {/* Icon */}
+      {/* Node Icon inside SVG */}
       <foreignObject
-        x={node.x - 8 / scale}
-        y={node.y - 8 / scale}
-        width={16 / scale}
-        height={16 / scale}
+        x={node.x - 9 / scale}
+        y={node.y - 9 / scale}
+        width={18 / scale}
+        height={18 / scale}
         style={{ pointerEvents: "none" }}
       >
-        <div style={{ color: "var(--color-ink)" }}>
+        <div
+          className="flex items-center justify-center w-full h-full"
+          style={{ color: isFailed ? "var(--color-error)" : "var(--color-ink)" }}
+        >
           <NodeIcon type={node.type} />
         </div>
       </foreignObject>
 
-      {/* Label */}
+      {/* Node Label */}
       <text
         x={node.x}
-        y={node.y + 60 / scale}
+        y={node.y + 54 / scale}
         textAnchor="middle"
         fill="var(--color-ink)"
-        fontSize={12 / scale}
-        fontWeight="500"
+        fontSize={11 / scale}
+        fontWeight={isSelected ? "600" : "500"}
         style={{ pointerEvents: "none" }}
       >
-        {node.label}
+        {node.label.length > 22 ? `${node.label.slice(0, 20)}...` : node.label}
+      </text>
+
+      {/* Node Subtitle (Type) */}
+      <text
+        x={node.x}
+        y={node.y + 66 / scale}
+        textAnchor="middle"
+        fill="var(--color-ink-muted)"
+        fontSize={9 / scale}
+        className="uppercase tracking-wider"
+        style={{ pointerEvents: "none" }}
+      >
+        {node.type}
       </text>
     </motion.g>
   );
 }
 
-function ProvenanceEdge({ edge, nodes, scale }: { edge: ProvenanceEdge; nodes: ProvenanceNode[]; scale: number }) {
+function GraphEdgeSvg({
+  edge,
+  nodes,
+  scale,
+  isHighlighted,
+  isDimmed,
+}: {
+  edge: ProvenanceGraphEdge;
+  nodes: ProvenanceGraphNode[];
+  scale: number;
+  isHighlighted: boolean;
+  isDimmed: boolean;
+}) {
   const fromNode = nodes.find((n) => n.id === edge.from);
   const toNode = nodes.find((n) => n.id === edge.to);
 
   if (!fromNode || !toNode) return null;
 
-  // Calculate edge path with slight curve
+  const dx = toNode.x - fromNode.x;
+  const dy = toNode.y - fromNode.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+
+  // Offset slightly for smooth cubic bezier
   const midX = (fromNode.x + toNode.x) / 2;
   const midY = (fromNode.y + toNode.y) / 2;
-  const offsetX = (toNode.y - fromNode.y) * 0.1;
-  const offsetY = (fromNode.x - toNode.x) * 0.1;
+  const curvature = Math.min(Math.abs(dx) * 0.15, 30);
+  const ctrlX = midX;
+  const ctrlY = midY - curvature;
+
+  const strokeColor = isHighlighted
+    ? "var(--color-primary)"
+    : "color-mix(in srgb, var(--color-border) 70%, transparent)";
+
+  const strokeWidth = (isHighlighted ? 3 : 1.5) / scale;
 
   return (
-    <g>
-      {/* Animated path */}
+    <g opacity={isDimmed ? 0.15 : 1}>
+      {/* Edge path */}
       <motion.path
-        d={`M ${fromNode.x} ${fromNode.y} Q ${midX + offsetX} ${midY + offsetY} ${toNode.x} ${toNode.y}`}
+        d={`M ${fromNode.x} ${fromNode.y} Q ${ctrlX} ${ctrlY} ${toNode.x} ${toNode.y}`}
         fill="none"
-        stroke="color-mix(in srgb, var(--color-border) 50%, transparent)"
-        strokeWidth={2 / scale}
+        stroke={strokeColor}
+        strokeWidth={strokeWidth}
         initial={{ pathLength: 0, opacity: 0 }}
         animate={{ pathLength: 1, opacity: 1 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
       />
 
-      {/* Arrowhead */}
-      <motion.circle
-        cx={toNode.x}
-        cy={toNode.y}
-        r={4 / scale}
-        fill="var(--color-ink-muted)"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
+      {/* Small arrow / direction dot */}
+      <circle
+        cx={toNode.x - (dx / (dist || 1)) * (38 / scale)}
+        cy={toNode.y - (dy / (dist || 1)) * (38 / scale)}
+        r={3.5 / scale}
+        fill={isHighlighted ? "var(--color-primary)" : "var(--color-ink-muted)"}
       />
+
+      {/* Edge Relationship Label */}
+      {isHighlighted && (
+        <text
+          x={ctrlX}
+          y={ctrlY - 4 / scale}
+          textAnchor="middle"
+          fill="var(--color-primary)"
+          fontSize={10 / scale}
+          fontWeight="600"
+          className="bg-surface px-1"
+        >
+          {edge.label}
+        </text>
+      )}
     </g>
   );
 }
 
 export default function ProvenancePage() {
   const [loading, setLoading] = useState(true);
-  const [selectedNode, setSelectedNode] = useState<ProvenanceNode | null>(null);
+  const [experiments, setExperiments] = useState<Experiment[]>([]);
+  const [selectedExperimentId, setSelectedExperimentId] =
+    useState<string>("EXP-2026-0042");
+  const [graphData, setGraphData] = useState<ProvenanceGraphData | null>(null);
+  const [selectedNode, setSelectedNode] =
+    useState<ProvenanceGraphNode | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTypeFilters, setActiveTypeFilters] = useState<
+    Set<ProvenanceNodeType>
+  >(
+    new Set([
+      "experiment",
+      "measurement",
+      "dataset",
+      "processing",
+      "analysis",
+      "result",
+      "evidence",
+      "submission",
+    ])
+  );
+
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const svgRef = useRef<SVGSVGElement>(null);
 
+  // Load experiments list
   useEffect(() => {
-    // Simulate data loading
-    setTimeout(() => setLoading(false), 800);
+    async function init() {
+      try {
+        const [exps, data] = await Promise.all([
+          getExperiments(),
+          getProvenanceGraph("EXP-2026-0042"),
+        ]);
+        setExperiments(exps);
+        setGraphData(data);
+      } catch (err) {
+        console.error("Failed to load provenance:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    init();
   }, []);
 
-  const handleZoomIn = () => setZoom((z) => Math.min(z * 1.2, 3));
-  const handleZoomOut = () => setZoom((z) => Math.max(z / 1.2, 0.3));
+  // Handle experiment switch
+  const handleExperimentChange = async (expId: string) => {
+    setSelectedExperimentId(expId);
+    setSelectedNode(null);
+    setLoading(true);
+    try {
+      const data = await getProvenanceGraph(expId);
+      setGraphData(data);
+      handleResetView();
+    } catch (err) {
+      console.error("Failed to switch experiment:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleZoomIn = () => setZoom((z) => Math.min(z * 1.25, 3));
+  const handleZoomOut = () => setZoom((z) => Math.max(z / 1.25, 0.35));
   const handleResetView = () => {
     setZoom(1);
     setPan({ x: 0, y: 0 });
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.target === svgRef.current || (e.target as SVGElement).tagName === "svg") {
+    if (
+      e.target === svgRef.current ||
+      (e.target as SVGElement).tagName === "svg" ||
+      (e.target as SVGElement).tagName === "rect"
+    ) {
       setIsDragging(true);
       setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
     }
@@ -394,60 +441,262 @@ export default function ProvenancePage() {
     setIsDragging(false);
   };
 
-  if (loading) {
+  const toggleTypeFilter = (type: ProvenanceNodeType) => {
+    setActiveTypeFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) {
+        if (next.size > 1) {
+          next.delete(type);
+        }
+      } else {
+        next.add(type);
+      }
+      return next;
+    });
+  };
+
+  const handleExportSvg = () => {
+    if (!svgRef.current) return;
+    const svgData = new XMLSerializer().serializeToString(svgRef.current);
+    const blob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `provenance-${selectedExperimentId}.svg`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Filter nodes based on type filters & search query
+  const visibleNodes = useMemo(() => {
+    if (!graphData) return [];
+    return graphData.nodes.filter((node) => {
+      const matchesType = activeTypeFilters.has(node.type);
+      const matchesSearch =
+        !searchQuery.trim() ||
+        node.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        node.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        Object.values(node.metadata).some((v) =>
+          v.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      return matchesType && matchesSearch;
+    });
+  }, [graphData, activeTypeFilters, searchQuery]);
+
+  const visibleNodeIds = useMemo(
+    () => new Set(visibleNodes.map((n) => n.id)),
+    [visibleNodes]
+  );
+
+  const visibleEdges = useMemo(() => {
+    if (!graphData) return [];
+    return graphData.edges.filter(
+      (edge) => visibleNodeIds.has(edge.from) && visibleNodeIds.has(edge.to)
+    );
+  }, [graphData, visibleNodeIds]);
+
+  // Compute upstream ancestors and downstream descendants for selected node
+  const { highlightedNodeIds, highlightedEdgeKeys } = useMemo(() => {
+    if (!selectedNode || !graphData) {
+      return {
+        highlightedNodeIds: new Set<string>(),
+        highlightedEdgeKeys: new Set<string>(),
+      };
+    }
+
+    const nodeIds = new Set<string>([selectedNode.id]);
+    const edgeKeys = new Set<string>();
+
+    // Traverse upstream (ancestors)
+    const upstreamQueue = [selectedNode.id];
+    while (upstreamQueue.length > 0) {
+      const curr = upstreamQueue.shift()!;
+      graphData.edges
+        .filter((e) => e.to === curr)
+        .forEach((e) => {
+          edgeKeys.add(`${e.from}->${e.to}`);
+          if (!nodeIds.has(e.from)) {
+            nodeIds.add(e.from);
+            upstreamQueue.push(e.from);
+          }
+        });
+    }
+
+    // Traverse downstream (descendants)
+    const downstreamQueue = [selectedNode.id];
+    while (downstreamQueue.length > 0) {
+      const curr = downstreamQueue.shift()!;
+      graphData.edges
+        .filter((e) => e.from === curr)
+        .forEach((e) => {
+          edgeKeys.add(`${e.from}->${e.to}`);
+          if (!nodeIds.has(e.to)) {
+            nodeIds.add(e.to);
+            downstreamQueue.push(e.to);
+          }
+        });
+    }
+
+    return {
+      highlightedNodeIds: nodeIds,
+      highlightedEdgeKeys: edgeKeys,
+    };
+  }, [selectedNode, graphData]);
+
+  if (loading && !graphData) {
     return (
       <div>
-        <PageHeader title="Provenance Graph" />
+        <PageHeader
+          title="Provenance Graph"
+          subtitle="Interactive visualization of experimental lineage, dataset evolution, and evidence relationships."
+        />
         <Card className="p-8">
-          <Skeleton className="h-[600px] w-full" />
+          <Skeleton className="h-[650px] w-full" />
         </Card>
       </div>
     );
   }
 
-  return (
-    <div>
-      <PageHeader
-        title="Provenance Graph"
-        subtitle="Interactive visualization of experimental lineage, dataset evolution, and evidence relationships."
-      />
+  const allNodes = graphData?.nodes || [];
+  const verifiedCount = allNodes.filter(
+    (n) => n.verified && n.status !== "failed"
+  ).length;
+  const issuesCount = allNodes.length - verifiedCount;
 
-      <div className="grid grid-cols-3 gap-6">
-        {/* Graph Visualization */}
-        <Card className="col-span-2 p-0 overflow-hidden relative">
-          {/* Controls */}
-          <div className="absolute top-4 right-4 z-10 flex gap-2">
+  return (
+    <div className="space-y-6">
+      {/* Header and Controls Bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <PageHeader
+            title="Provenance Graph"
+            subtitle="Interactive visualization of experimental lineage, dataset evolution, and evidence relationships."
+          />
+        </div>
+
+        {/* Experiment Selector */}
+        <div className="flex items-center gap-3 self-start md:self-auto">
+          <label className="text-xs font-medium text-ink-muted uppercase tracking-wide">
+            Experiment:
+          </label>
+          <div className="w-72">
+            <Select
+              value={selectedExperimentId}
+              onChange={(e) => handleExperimentChange(e.target.value)}
+              options={experiments.map((exp) => ({
+                value: exp.id,
+                label: `${exp.id} - ${exp.title}`,
+              }))}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Filter and Search Toolbar */}
+      <Card className="p-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* Node Type Filter Pills */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs font-medium text-ink-muted uppercase tracking-wide mr-1 flex items-center gap-1">
+              <Filter className="w-3.5 h-3.5" /> Filters:
+            </span>
+            {(
+              [
+                "experiment",
+                "measurement",
+                "dataset",
+                "processing",
+                "analysis",
+                "result",
+                "evidence",
+                "submission",
+              ] as ProvenanceNodeType[]
+            ).map((type) => {
+              const active = activeTypeFilters.has(type);
+              const config = nodeTypeColors[type];
+              return (
+                <button
+                  key={type}
+                  onClick={() => toggleTypeFilter(type)}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium border transition-colors ${
+                    active
+                      ? "bg-surface-elevated text-ink border-border shadow-xs"
+                      : "bg-surface text-ink-muted border-transparent opacity-40 hover:opacity-75"
+                  }`}
+                >
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: config.stroke }}
+                  />
+                  {config.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Search Box */}
+          <div className="relative w-64">
+            <Search className="w-3.5 h-3.5 text-ink-muted absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search nodes or metadata..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-8 pr-3 py-1 text-xs bg-surface border border-border text-ink focus:outline-hidden focus:border-primary placeholder:text-ink-faint"
+            />
+          </div>
+        </div>
+      </Card>
+
+      {/* Main Graph Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* SVG Graph Canvas Card */}
+        <Card className="lg:col-span-2 p-0 overflow-hidden relative border border-border">
+          {/* Canvas Floating Controls */}
+          <div className="absolute top-4 right-4 z-10 flex items-center gap-2 bg-surface/90 backdrop-blur-xs p-1 border border-border shadow-xs">
             <Button
-              variant="secondary"
+              variant="ghost"
               size="sm"
               onClick={handleZoomIn}
               title="Zoom In"
+              className="h-8 w-8 p-0"
             >
               <ZoomIn className="w-4 h-4" />
             </Button>
             <Button
-              variant="secondary"
+              variant="ghost"
               size="sm"
               onClick={handleZoomOut}
               title="Zoom Out"
+              className="h-8 w-8 p-0"
             >
               <ZoomOut className="w-4 h-4" />
             </Button>
             <Button
-              variant="secondary"
+              variant="ghost"
               size="sm"
               onClick={handleResetView}
               title="Reset View"
+              className="h-8 w-8 p-0"
             >
-              <Maximize2 className="w-4 h-4" />
+              <RotateCcw className="w-4 h-4" />
             </Button>
-            <Button variant="secondary" size="sm" title="Export Graph">
+            <div className="w-px h-4 bg-border" />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleExportSvg}
+              title="Export SVG"
+              className="h-8 w-8 p-0"
+            >
               <Download className="w-4 h-4" />
             </Button>
           </div>
 
-          {/* SVG Canvas */}
-          <div className="bg-background h-[700px] overflow-hidden">
+          {/* SVG Canvas Area */}
+          <div className="bg-surface h-[720px] overflow-hidden select-none relative">
             <svg
               ref={svgRef}
               width="100%"
@@ -456,203 +705,361 @@ export default function ProvenancePage() {
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
+              onClick={() => setSelectedNode(null)}
               style={{ cursor: isDragging ? "grabbing" : "grab" }}
             >
-              <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
-                {/* Edges */}
-                {mockEdges.map((edge, i) => (
-                  <ProvenanceEdge
-                    key={`${edge.from}-${edge.to}-${i}`}
-                    edge={edge}
-                    nodes={mockNodes}
-                    scale={zoom}
+              {/* Background grid pattern */}
+              <defs>
+                <pattern
+                  id="provenance-grid"
+                  width="40"
+                  height="40"
+                  patternUnits="userSpaceOnUse"
+                >
+                  <circle
+                    cx="20"
+                    cy="20"
+                    r="1"
+                    fill="var(--color-border)"
+                    opacity="0.6"
                   />
-                ))}
+                </pattern>
+              </defs>
+              <rect
+                width="100%"
+                height="100%"
+                fill="url(#provenance-grid)"
+                pointerEvents="all"
+              />
 
-                {/* Nodes */}
-                {mockNodes.map((node) => (
-                  <ProvenanceNode
-                    key={node.id}
-                    node={node}
-                    isSelected={selectedNode?.id === node.id}
-                    onClick={() => setSelectedNode(node)}
-                    scale={zoom}
-                  />
-                ))}
+              {/* Pan & Zoom Container */}
+              <g
+                transform={`translate(${pan.x + 50}, ${pan.y + 20}) scale(${zoom})`}
+              >
+                {/* Render Edges */}
+                {visibleEdges.map((edge, i) => {
+                  const edgeKey = `${edge.from}->${edge.to}`;
+                  const isHighlighted = highlightedEdgeKeys.has(edgeKey);
+                  const isDimmed =
+                    selectedNode !== null && !isHighlighted;
+                  return (
+                    <GraphEdgeSvg
+                      key={`${edge.from}-${edge.to}-${i}`}
+                      edge={edge}
+                      nodes={allNodes}
+                      scale={zoom}
+                      isHighlighted={isHighlighted}
+                      isDimmed={isDimmed}
+                    />
+                  );
+                })}
+
+                {/* Render Nodes */}
+                {visibleNodes.map((node) => {
+                  const isSelected = selectedNode?.id === node.id;
+                  const isHighlighted = highlightedNodeIds.has(node.id);
+                  const isDimmed =
+                    selectedNode !== null &&
+                    !isSelected &&
+                    !isHighlighted;
+
+                  return (
+                    <GraphNodeSvg
+                      key={node.id}
+                      node={node}
+                      isSelected={isSelected}
+                      isHighlighted={isHighlighted}
+                      isDimmed={isDimmed}
+                      onClick={() => setSelectedNode(node)}
+                      scale={zoom}
+                    />
+                  );
+                })}
               </g>
             </svg>
           </div>
 
-          {/* Legend */}
-          <div className="absolute bottom-4 left-4 bg-surface border border-border p-3">
-            <p className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-2">
-              Node Types
+          {/* Visual Node Types Legend */}
+          <div className="absolute bottom-3 left-3 bg-surface/95 backdrop-blur-xs border border-border p-2.5 shadow-xs max-w-xs">
+            <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider mb-2">
+              Lineage Node Types
             </p>
-            <div className="space-y-1.5">
-              {[
-                { type: "experiment" as NodeType, label: "Experiment" },
-                { type: "measurement" as NodeType, label: "Measurement" },
-                { type: "dataset" as NodeType, label: "Dataset" },
-                { type: "analysis" as NodeType, label: "Analysis" },
-                { type: "evidence" as NodeType, label: "Evidence" },
-              ].map((item) => (
-                <div key={item.type} className="flex items-center gap-2">
-                  <div className="w-6 h-6 flex items-center justify-center">
-                    <NodeIcon type={item.type} />
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+              {(
+                [
+                  "experiment",
+                  "measurement",
+                  "dataset",
+                  "processing",
+                  "analysis",
+                  "result",
+                  "evidence",
+                  "submission",
+                ] as ProvenanceNodeType[]
+              ).map((type) => {
+                const config = nodeTypeColors[type];
+                return (
+                  <div key={type} className="flex items-center gap-1.5">
+                    <span
+                      className="w-2.5 h-2.5 rounded-xs border"
+                      style={{
+                        backgroundColor: config.fill,
+                        borderColor: config.stroke,
+                      }}
+                    />
+                    <span className="text-[11px] text-ink capitalize">
+                      {config.label}
+                    </span>
                   </div>
-                  <span className="text-xs text-ink">{item.label}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </Card>
 
-        {/* Node Details Panel */}
-        <Card className="p-6">
-          <h3 className="text-base font-semibold text-ink mb-4">
-            Node Details
-          </h3>
+        {/* Node Inspection Details Panel */}
+        <Card className="p-6 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-4 border-b border-border mb-4">
+              <h3 className="text-base font-semibold text-ink">
+                Node Inspector
+              </h3>
+              {selectedNode && (
+                <Badge
+                  variant={
+                    selectedNode.verified && selectedNode.status !== "failed"
+                      ? "success"
+                      : "error"
+                  }
+                >
+                  {selectedNode.verified && selectedNode.status !== "failed"
+                    ? "Verified"
+                    : "Issue Detected"}
+                </Badge>
+              )}
+            </div>
 
-          <AnimatePresence mode="wait">
-            {selectedNode ? (
-              <motion.div
-                key={selectedNode.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-                className="space-y-4"
-              >
-                {/* Node Header */}
-                <div className="pb-4 border-b border-border">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-8 h-8 flex items-center justify-center bg-surface-elevated border border-border">
+            <AnimatePresence mode="wait">
+              {selectedNode ? (
+                <motion.div
+                  key={selectedNode.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-4"
+                >
+                  {/* Node Title & Identity */}
+                  <div className="flex items-start gap-3 bg-surface-elevated p-3 border border-border">
+                    <div
+                      className="w-10 h-10 flex items-center justify-center shrink-0 border"
+                      style={{
+                        backgroundColor:
+                          nodeTypeColors[selectedNode.type]?.fill,
+                        borderColor: nodeTypeColors[selectedNode.type]?.stroke,
+                      }}
+                    >
                       <NodeIcon type={selectedNode.type} />
                     </div>
-                    <div className="flex-1">
-                      <p className="text-xs text-ink-muted uppercase tracking-wide">
-                        {selectedNode.type}
-                      </p>
-                      <p className="text-sm font-medium text-ink mt-0.5">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] uppercase font-bold text-ink-muted">
+                          {selectedNode.type} Node
+                        </span>
+                      </div>
+                      <p className="text-sm font-semibold text-ink truncate mt-0.5">
                         {selectedNode.label}
                       </p>
+                      <p className="text-xs font-mono text-ink-muted mt-0.5">
+                        ID: {selectedNode.id}
+                      </p>
                     </div>
-                    <VerificationIcon
-                      status={selectedNode.verified ? "verified" : "failed"}
-                      animate={false}
-                    />
                   </div>
-                </div>
 
-                {/* Metadata */}
-                <div>
-                  <p className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-3">
-                    Metadata
-                  </p>
-                  <div className="space-y-2">
-                    {Object.entries(selectedNode.metadata).map(([key, value]) => (
-                      <div key={key}>
-                        <span className="text-xs text-ink-faint capitalize">
-                          {key.replace(/_/g, " ")}
-                        </span>
-                        <p className="text-sm text-ink mt-0.5">{value}</p>
-                      </div>
-                    ))}
+                  {/* Timestamp */}
+                  <div>
+                    <span className="text-[11px] font-medium text-ink-muted uppercase tracking-wide">
+                      Timestamp
+                    </span>
+                    <p className="text-xs text-ink mt-0.5 font-mono">
+                      {formatDateTimeFull(selectedNode.timestamp)}
+                    </p>
                   </div>
-                </div>
 
-                {/* Timestamp */}
-                <div>
-                  <span className="text-xs text-ink-faint">Timestamp</span>
-                  <p className="text-sm text-ink mt-0.5">
-                    {formatDateTimeFull(selectedNode.timestamp)}
-                  </p>
-                </div>
-
-                {/* Connections */}
-                <div>
-                  <p className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-2">
-                    Connections
-                  </p>
-                  <div className="space-y-1.5">
-                    {mockEdges
-                      .filter((e) => e.from === selectedNode.id || e.to === selectedNode.id)
-                      .map((edge, i) => {
-                        const isOutgoing = edge.from === selectedNode.id;
-                        const connectedId = isOutgoing ? edge.to : edge.from;
-                        const connectedNode = mockNodes.find((n) => n.id === connectedId);
-
-                        return (
+                  {/* Metadata Key-Values */}
+                  <div>
+                    <span className="text-[11px] font-medium text-ink-muted uppercase tracking-wide mb-2 block">
+                      Node Properties & Attributes
+                    </span>
+                    <div className="bg-surface border border-border divide-y divide-border text-xs">
+                      {Object.entries(selectedNode.metadata).map(
+                        ([key, val]) => (
                           <div
-                            key={i}
-                            className="text-xs text-ink-muted flex items-center gap-1.5"
+                            key={key}
+                            className="p-2 flex items-start justify-between gap-2"
                           >
-                            <span className="text-xs text-ink-faint">
-                              {isOutgoing ? "→" : "←"}
+                            <span className="text-ink-muted capitalize font-medium">
+                              {key.replace(/([A-Z])/g, " $1")}
                             </span>
-                            <span className="font-medium">{edge.label}</span>
-                            <span className="text-xs text-ink-faint">
-                              {connectedNode?.label}
+                            <span className="text-ink font-mono text-right break-all">
+                              {val}
                             </span>
                           </div>
-                        );
-                      })}
+                        )
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                {/* Actions */}
-                <div className="pt-4 border-t border-border">
-                  <Button variant="primary" size="sm" className="w-full">
-                    View Full Details
-                  </Button>
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="empty"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex flex-col items-center justify-center py-12 text-center"
-              >
-                <GitBranch className="w-12 h-12 text-ink-muted mb-4" />
-                <p className="text-sm text-ink-muted">
-                  Select a node to view details
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  {/* Connections */}
+                  <div>
+                    <span className="text-[11px] font-medium text-ink-muted uppercase tracking-wide mb-2 block">
+                      Lineage Connections
+                    </span>
+                    <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                      {/* Inputs (Upstream) */}
+                      {graphData?.edges
+                        .filter((e) => e.to === selectedNode.id)
+                        .map((edge, i) => {
+                          const src = allNodes.find((n) => n.id === edge.from);
+                          return (
+                            <button
+                              key={`up-${i}`}
+                              onClick={() => src && setSelectedNode(src)}
+                              className="w-full text-left p-2 bg-surface hover:bg-surface-elevated border border-border text-xs flex items-center justify-between group transition-colors"
+                            >
+                              <div className="flex items-center gap-1.5">
+                                <ArrowLeft className="w-3 h-3 text-ink-muted" />
+                                <span className="text-ink-muted font-medium">
+                                  {edge.label}:
+                                </span>
+                                <span className="text-ink font-semibold">
+                                  {src?.label || edge.from}
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-ink-faint group-hover:text-primary">
+                                Inspect
+                              </span>
+                            </button>
+                          );
+                        })}
+
+                      {/* Outputs (Downstream) */}
+                      {graphData?.edges
+                        .filter((e) => e.from === selectedNode.id)
+                        .map((edge, i) => {
+                          const tgt = allNodes.find((n) => n.id === edge.to);
+                          return (
+                            <button
+                              key={`down-${i}`}
+                              onClick={() => tgt && setSelectedNode(tgt)}
+                              className="w-full text-left p-2 bg-surface hover:bg-surface-elevated border border-border text-xs flex items-center justify-between group transition-colors"
+                            >
+                              <div className="flex items-center gap-1.5">
+                                <ArrowRight className="w-3 h-3 text-ink-muted" />
+                                <span className="text-ink-muted font-medium">
+                                  {edge.label}:
+                                </span>
+                                <span className="text-ink font-semibold">
+                                  {tgt?.label || edge.to}
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-ink-faint group-hover:text-primary">
+                                Inspect
+                              </span>
+                            </button>
+                          );
+                        })}
+                    </div>
+                  </div>
+
+                  {/* Actions & Deep Links */}
+                  <div className="pt-3 border-t border-border space-y-2">
+                    {selectedNode.recordId && (
+                      <Link
+                        href={`/evidence/${selectedNode.recordId}`}
+                        className="w-full inline-flex items-center justify-center gap-2 py-2 px-3 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 transition-colors"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        View Evidence Record ({selectedNode.recordId})
+                      </Link>
+                    )}
+
+                    {selectedNode.type === "experiment" && (
+                      <Link
+                        href={`/experiments/${selectedNode.label}`}
+                        className="w-full inline-flex items-center justify-center gap-2 py-2 px-3 text-xs font-semibold text-ink bg-surface-elevated hover:bg-surface border border-border transition-colors"
+                      >
+                        <FlaskConical className="w-3.5 h-3.5" />
+                        Open Experiment Details
+                      </Link>
+                    )}
+
+                    {selectedNode.type === "submission" && (
+                      <Link
+                        href="/submissions"
+                        className="w-full inline-flex items-center justify-center gap-2 py-2 px-3 text-xs font-semibold text-ink bg-surface-elevated hover:bg-surface border border-border transition-colors"
+                      >
+                        <Layers className="w-3.5 h-3.5" />
+                        Open Research Submissions
+                      </Link>
+                    )}
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="empty"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex flex-col items-center justify-center py-16 text-center"
+                >
+                  <GitBranch className="w-12 h-12 text-ink-muted mb-3 opacity-60" />
+                  <p className="text-sm font-medium text-ink">
+                    No Node Selected
+                  </p>
+                  <p className="text-xs text-ink-muted mt-1 max-w-xs">
+                    Click any node on the canvas to inspect cryptographic
+                    commitments, upstream inputs, and downstream results.
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </Card>
       </div>
 
-      {/* Graph Statistics */}
-      <div className="grid grid-cols-4 gap-4 mt-6">
+      {/* Graph Statistics Banner */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="p-4">
           <p className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-1">
-            Total Nodes
+            Total Pipeline Nodes
           </p>
-          <p className="text-2xl font-semibold text-ink">{mockNodes.length}</p>
+          <p className="text-2xl font-semibold text-ink">{allNodes.length}</p>
         </Card>
         <Card className="p-4">
           <p className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-1">
-            Connections
+            Lineage Connections
           </p>
-          <p className="text-2xl font-semibold text-ink">{mockEdges.length}</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-1">
-            Verified
-          </p>
-          <p className="text-2xl font-semibold text-success">
-            {mockNodes.filter((n) => n.verified).length}
+          <p className="text-2xl font-semibold text-ink">
+            {graphData?.edges.length || 0}
           </p>
         </Card>
         <Card className="p-4">
           <p className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-1">
-            Issues
+            Verified Artifacts
           </p>
-          <p className="text-2xl font-semibold text-error">
-            {mockNodes.filter((n) => !n.verified).length}
+          <p className="text-2xl font-semibold text-success">{verifiedCount}</p>
+        </Card>
+        <Card className="p-4">
+          <p className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-1">
+            Integrity Issues
+          </p>
+          <p
+            className={`text-2xl font-semibold ${
+              issuesCount > 0 ? "text-error" : "text-ink-muted"
+            }`}
+          >
+            {issuesCount}
           </p>
         </Card>
       </div>

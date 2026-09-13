@@ -4,42 +4,118 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   PageHeader,
   Card,
   Button,
   Input,
   Select,
+  Textarea,
+  Modal,
   EmptyState,
   Skeleton,
   StatusBadge,
   VerificationIcon,
 } from "@/components/ui";
 import type { ResearchSubmission } from "@/types";
-import { getSubmissions } from "@/services/api";
-import { formatDateTime, formatDateTimeFull } from "@/lib/utils";
-import { Search, Plus, Download, ChevronDown, FileText } from "lucide-react";
+import { getSubmissions, createSubmission, getExperiments } from "@/services/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { formatDateTime, formatDateTimeFull, downloadJsonFile } from "@/lib/utils";
+import { Search, Plus, Download, ChevronDown, FileText, CheckCircle2, Loader2 } from "lucide-react";
 
 export default function SubmissionsPage() {
+  const { user } = useAuth();
   const [submissions, setSubmissions] = useState<ResearchSubmission[]>([]);
+  const [experimentsList, setExperimentsList] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("recentDesc");
   const [expanded, setExpanded] = useState<string | null>(null);
 
+  // Modal & Form State
+  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [notification, setNotification] = useState<string | null>(null);
+
+  const [form, setForm] = useState({
+    title: "",
+    experimentId: "EXP-2026-0042",
+    abstract: "",
+    author: user?.name || "Dr. Investigator",
+    institution: user?.institutionName || "Stanford University",
+  });
+
+  useEffect(() => {
+    if (user) {
+      setForm((prev) => ({
+        ...prev,
+        author: user.name || prev.author,
+        institution: user.institutionName || prev.institution,
+      }));
+    }
+  }, [user]);
+
+  const showNotification = (msg: string) => {
+    setNotification(msg);
+    setTimeout(() => setNotification(null), 4000);
+  };
+
   useEffect(() => {
     async function loadData() {
       try {
-        const data = await getSubmissions();
-        setSubmissions(data);
+        const [subData, expData] = await Promise.all([getSubmissions(), getExperiments()]);
+        setSubmissions(subData);
+        setExperimentsList(expData.map((e) => e.id));
+        if (expData.length > 0) {
+          setForm((prev) => ({ ...prev, experimentId: expData[0].id }));
+        }
       } finally {
         setLoading(false);
       }
     }
     loadData();
   }, []);
+
+  const handleExportQueue = () => {
+    downloadJsonFile(
+      `resrec_submissions_export_${new Date().toISOString().slice(0, 10)}.json`,
+      filteredSubmissions
+    );
+    showNotification(`Exported ${filteredSubmissions.length} submissions.`);
+  };
+
+  const handleCreateSubmission = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.title.trim()) return;
+
+    setSubmitting(true);
+    try {
+      const created = await createSubmission({
+        title: form.title,
+        experimentId: form.experimentId,
+        abstract: form.abstract,
+        authors: [form.author],
+        institution: form.institution,
+      });
+
+      setSubmissions((prev) => [created, ...prev]);
+      setIsNewModalOpen(false);
+      setForm({
+        title: "",
+        experimentId: experimentsList[0] || "EXP-2026-0042",
+        abstract: "",
+        author: "Dr. Sarah Chen",
+        institution: "Stanford University",
+      });
+      showNotification(`Submission ${created.id} registered for peer review!`);
+    } catch (err: any) {
+      alert(`Failed to create submission: ${err?.message || err}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const filteredSubmissions = submissions
     .filter((sub) => {
@@ -57,7 +133,6 @@ export default function SubmissionsPage() {
       if (sortBy === "titleAsc") return a.title.localeCompare(b.title);
       if (sortBy === "titleDesc") return b.title.localeCompare(a.title);
 
-      // Drafts have no submittedAt; sort them last on newest, first on oldest.
       const aTime = a.submittedAt ? new Date(a.submittedAt).getTime() : 0;
       const bTime = b.submittedAt ? new Date(b.submittedAt).getTime() : 0;
       if (sortBy === "recentAsc") return aTime - bTime;
@@ -81,16 +156,33 @@ export default function SubmissionsPage() {
 
   return (
     <div>
+      {/* Toast Notification */}
+      {notification && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          className="fixed top-6 right-6 z-50 bg-primary text-white px-4 py-3 shadow-xl border border-primary/30 flex items-center gap-2 text-sm"
+        >
+          <CheckCircle2 className="w-4 h-4 text-success" />
+          <span>{notification}</span>
+        </motion.div>
+      )}
+
       <PageHeader
         title="Submissions"
         subtitle="Research submissions bundled for review, with evidence coverage and integrity status."
         actions={
           <>
-            <Button variant="secondary" size="md">
+            <Button variant="secondary" size="md" onClick={handleExportQueue}>
               <Download className="w-4 h-4 mr-2" />
               Export Queue
             </Button>
-            <Button variant="primary" size="md">
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => setIsNewModalOpen(true)}
+            >
               <Plus className="w-4 h-4 mr-2" />
               New Submission
             </Button>
@@ -161,7 +253,7 @@ export default function SubmissionsPage() {
                 setSearchTerm("");
                 setStatusFilter("all");
               }}
-              className="text-xs text-primary hover:text-primary-hover ml-2"
+              className="text-xs text-primary hover:text-primary-hover ml-2 cursor-pointer font-medium"
             >
               Clear all
             </button>
@@ -169,187 +261,286 @@ export default function SubmissionsPage() {
         )}
       </Card>
 
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-ink-muted">
-          Showing <span className="font-medium text-ink">{filteredSubmissions.length}</span> of{" "}
-          <span className="font-medium text-ink">{submissions.length}</span> submissions
-        </p>
-      </div>
-
+      {/* Submissions List */}
       {filteredSubmissions.length === 0 ? (
         <Card className="p-8">
           <EmptyState
-            icon={<FileText className="w-10 h-10" />}
+            icon={<FileText className="w-10 h-10 text-ink-muted" />}
             title="No submissions found"
-            description="No submissions match the current filters. Clear the filters to see the full review queue."
+            description="Adjust your search or filter settings to locate specific submissions, or create a new submission."
             action={
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setSearchTerm("");
-                  setStatusFilter("all");
-                }}
-              >
-                Clear filters
+              <Button variant="primary" onClick={() => setIsNewModalOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                New Submission
               </Button>
             }
           />
         </Card>
       ) : (
-        <Card className="p-0 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="border-b border-border bg-surface-elevated">
-                <tr>
-                  <th className="w-10 py-3 px-6" />
-                  <th className="text-left py-3 px-6 font-medium text-ink-muted text-xs uppercase tracking-wide">
-                    Submission
-                  </th>
-                  <th className="text-left py-3 px-6 font-medium text-ink-muted text-xs uppercase tracking-wide">
-                    Lead Author
-                  </th>
-                  <th className="text-left py-3 px-6 font-medium text-ink-muted text-xs uppercase tracking-wide">
-                    Status
-                  </th>
-                  <th className="text-right py-3 px-6 font-medium text-ink-muted text-xs uppercase tracking-wide">
-                    Evidence Coverage
-                  </th>
-                  <th className="text-left py-3 px-6 font-medium text-ink-muted text-xs uppercase tracking-wide">
-                    Integrity
-                  </th>
-                  <th className="text-left py-3 px-6 font-medium text-ink-muted text-xs uppercase tracking-wide">
-                    Submitted
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filteredSubmissions.map((sub, index) => {
-                  const coverage =
-                    sub.totalRecords > 0
-                      ? Math.round((sub.verifiedRecords / sub.totalRecords) * 100)
-                      : 0;
-                  const isOpen = expanded === sub.id;
+        <div className="space-y-4">
+          {filteredSubmissions.map((sub, index) => {
+            const isExpanded = expanded === sub.id;
+            const coverage =
+              sub.totalRecords > 0
+                ? Math.round((sub.verifiedRecords / sub.totalRecords) * 100)
+                : 0;
 
-                  return (
-                    <motion.tr
-                      key={sub.id}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: Math.min(index * 0.03, 0.2) }}
-                      className="hover:bg-surface-elevated transition-colors cursor-pointer align-top"
-                      onClick={() => setExpanded(isOpen ? null : sub.id)}
-                    >
-                      <td className="py-4 px-6">
-                        <motion.div
-                          animate={{ rotate: isOpen ? 180 : 0 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          <ChevronDown className="w-4 h-4 text-ink-faint" />
-                        </motion.div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="font-mono text-xs text-ink-muted mb-1">{sub.id}</div>
-                        <div className="font-medium text-ink">{sub.title}</div>
-                        {isOpen && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            className="overflow-hidden"
-                          >
-                            <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 gap-6">
-                              <div>
-                                <span className="text-xs font-medium text-ink-faint uppercase tracking-wide">
-                                  Authors
-                                </span>
-                                <p className="text-sm text-ink mt-1">
-                                  {sub.authors.join(", ")}
-                                </p>
-                              </div>
-                              <div>
-                                <span className="text-xs font-medium text-ink-faint uppercase tracking-wide">
-                                  Institution
-                                </span>
-                                <p className="text-sm text-ink mt-1">{sub.institution}</p>
-                              </div>
-                              <div>
-                                <span className="text-xs font-medium text-ink-faint uppercase tracking-wide">
-                                  Experiments
-                                </span>
-                                <div className="flex flex-wrap gap-2 mt-1">
-                                  {sub.experimentIds.map((expId) => (
-                                    <Link
-                                      key={expId}
-                                      href={`/experiments/${expId}`}
-                                      onClick={(e) => e.stopPropagation()}
-                                      className="font-mono text-xs text-primary hover:text-primary-hover hover:underline"
-                                    >
-                                      {expId}
-                                    </Link>
-                                  ))}
-                                </div>
-                              </div>
-                              <div>
-                                <span className="text-xs font-medium text-ink-faint uppercase tracking-wide">
-                                  Submitted
-                                </span>
-                                <p className="text-sm text-ink mt-1">
-                                  {sub.submittedAt
-                                    ? formatDateTimeFull(sub.submittedAt)
-                                    : "Not yet submitted"}
-                                </p>
-                              </div>
-                            </div>
-                          </motion.div>
-                        )}
-                      </td>
-                      <td className="py-4 px-6 text-ink">{sub.authors[0]}</td>
-                      <td className="py-4 px-6">
-                        <StatusBadge status={sub.status} />
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="flex items-center justify-end gap-3">
-                          <span className="tabular-nums-sm text-ink">
-                            {sub.verifiedRecords} / {sub.totalRecords}
+            return (
+              <motion.div
+                key={sub.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.03 }}
+              >
+                <Card className="p-0 overflow-hidden">
+                  <div
+                    onClick={() => setExpanded(isExpanded ? null : sub.id)}
+                    className="p-6 cursor-pointer hover:bg-surface-elevated transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-1.5 flex-1 min-w-0">
+                        <div className="flex items-center gap-3">
+                          <span className="font-mono text-xs font-semibold text-primary">
+                            {sub.id}
                           </span>
-                          <div
-                            className="w-16 h-1.5 bg-surface-sunken overflow-hidden"
-                            role="img"
-                            aria-label={`${coverage} percent of records verified`}
-                          >
-                            <motion.div
-                              initial={{ width: 0 }}
-                              animate={{ width: `${coverage}%` }}
-                              transition={{ duration: 0.6, ease: "easeOut" }}
-                              className={
-                                coverage === 100
-                                  ? "h-full bg-success"
-                                  : coverage > 0
-                                  ? "h-full bg-warning"
-                                  : "h-full bg-border-strong"
-                              }
-                            />
+                          <StatusBadge status={sub.status} />
+                          <div className="flex items-center gap-1.5 ml-1">
+                            <VerificationIcon status={sub.integrityStatus} animate={false} />
+                            <span className="text-xs text-ink-muted capitalize">
+                              {sub.integrityStatus.replace(/_/g, " ")}
+                            </span>
                           </div>
                         </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-2">
-                          <VerificationIcon status={sub.integrityStatus} animate={false} />
-                          <span className="text-xs font-medium text-ink-muted">
-                            {sub.integrityStatus.replace(/_/g, " ")}
-                          </span>
+                        <h3 className="text-base font-semibold text-ink truncate">
+                          {sub.title}
+                        </h3>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-muted">
+                          <span>{sub.authors.join(", ")}</span>
+                          <span className="text-ink-faint">•</span>
+                          <span>{sub.institution}</span>
+                          {sub.submittedAt && (
+                            <>
+                              <span className="text-ink-faint">•</span>
+                              <span>Submitted {formatDateTime(sub.submittedAt)}</span>
+                            </>
+                          )}
                         </div>
-                      </td>
-                      <td className="py-4 px-6 text-ink-muted">
-                        {sub.submittedAt ? formatDateTime(sub.submittedAt) : "—"}
-                      </td>
-                    </motion.tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+                      </div>
+
+                      <div className="flex items-center gap-6 shrink-0">
+                        <div className="text-right hidden sm:block">
+                          <div className="text-xs text-ink-faint">Evidence Coverage</div>
+                          <div className="text-sm font-semibold font-mono text-ink">
+                            {sub.verifiedRecords} / {sub.totalRecords} ({coverage}%)
+                          </div>
+                        </div>
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            downloadJsonFile(`${sub.id}_submission.json`, sub);
+                            showNotification(`Downloaded bundle for ${sub.id}`);
+                          }}
+                        >
+                          <Download className="w-3.5 h-3.5 mr-1" />
+                          Bundle
+                        </Button>
+
+                        <ChevronDown
+                          className={`w-4 h-4 text-ink-muted transition-transform duration-200 ${
+                            isExpanded ? "rotate-180" : ""
+                          }`}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="border-t border-border bg-surface-elevated/40 px-6 py-5"
+                      >
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+                          <div>
+                            <span className="text-xs font-medium text-ink-faint uppercase tracking-wide">
+                              Associated Experiments
+                            </span>
+                            <div className="mt-2 space-y-1.5">
+                              {sub.experimentIds.length === 0 ? (
+                                <p className="text-xs text-ink-muted italic">
+                                  No linked experiments
+                                </p>
+                              ) : (
+                                sub.experimentIds.map((expId) => (
+                                  <Link
+                                    key={expId}
+                                    href={`/experiments/${expId}`}
+                                    className="block font-mono text-xs text-primary hover:underline"
+                                  >
+                                    {expId}
+                                  </Link>
+                                ))
+                              )}
+                            </div>
+                          </div>
+
+                          <div>
+                            <span className="text-xs font-medium text-ink-faint uppercase tracking-wide">
+                              Integrity Snapshot
+                            </span>
+                            <div className="mt-2 space-y-1 text-xs">
+                              <div className="flex justify-between">
+                                <span className="text-ink-muted">Status:</span>
+                                <span className="font-medium capitalize text-ink">
+                                  {sub.integrityStatus.replace(/_/g, " ")}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-ink-muted">Verified records:</span>
+                                <span className="font-mono text-ink">{sub.verifiedRecords}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-ink-muted">Total records:</span>
+                                <span className="font-mono text-ink">{sub.totalRecords}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div>
+                            <span className="text-xs font-medium text-ink-faint uppercase tracking-wide">
+                              Submission Details
+                            </span>
+                            <div className="mt-2 space-y-1 text-xs">
+                              <div className="flex justify-between">
+                                <span className="text-ink-muted">Institution:</span>
+                                <span className="text-ink">{sub.institution}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-ink-muted">Authors:</span>
+                                <span className="text-ink">{sub.authors.join("; ")}</span>
+                              </div>
+                              {sub.submittedAt && (
+                                <div className="flex justify-between">
+                                  <span className="text-ink-muted">Timestamp:</span>
+                                  <span className="text-ink">
+                                    {formatDateTimeFull(sub.submittedAt)}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </Card>
+              </motion.div>
+            );
+          })}
+        </div>
       )}
+
+      {/* New Submission Modal */}
+      <Modal
+        isOpen={isNewModalOpen}
+        onClose={() => setIsNewModalOpen(false)}
+        title="Create New Research Submission"
+        description="Bundle experiment evidence and datasets for peer review or journal publication."
+        maxWidth="lg"
+      >
+        <form onSubmit={handleCreateSubmission} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-ink uppercase tracking-wider mb-1.5">
+              Manuscript / Paper Title *
+            </label>
+            <Input
+              required
+              placeholder="e.g., Verification of High-Pressure Hydride Superconductivity"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-ink uppercase tracking-wider mb-1.5">
+              Primary Experiment Ledger *
+            </label>
+            <Select
+              options={
+                experimentsList.length > 0
+                  ? experimentsList.map((id) => ({ value: id, label: id }))
+                  : [{ value: "EXP-2026-0042", label: "EXP-2026-0042" }]
+              }
+              value={form.experimentId}
+              onChange={(e) => setForm({ ...form, experimentId: e.target.value })}
+              className="w-full font-mono text-sm"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-ink uppercase tracking-wider mb-1.5">
+                Lead Author *
+              </label>
+              <Input
+                required
+                value={form.author}
+                onChange={(e) => setForm({ ...form, author: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-ink uppercase tracking-wider mb-1.5">
+                Institution
+              </label>
+              <Input
+                value={form.institution}
+                onChange={(e) => setForm({ ...form, institution: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-ink uppercase tracking-wider mb-1.5">
+              Abstract & Review Notes
+            </label>
+            <Textarea
+              rows={3}
+              placeholder="Summary of research outcomes, validation metrics, and cryptographic receipts..."
+              value={form.abstract}
+              onChange={(e) => setForm({ ...form, abstract: e.target.value })}
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-border">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsNewModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" disabled={submitting}>
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Creating Submission...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Submission
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
