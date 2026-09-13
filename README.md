@@ -221,8 +221,4 @@ To complete the platform:
 
 ## License
 
-(Add your license here)
-
-## Contact
-
-(Add contact information)
+MIT
