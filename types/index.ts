@@ -209,6 +209,7 @@ export interface AuthUser {
   name: string;
   email: string;
   role: string;
+  avatarUrl?: string | null;
   institutionName?: string | null;
   department?: string | null;
   institutionId?: string | null;

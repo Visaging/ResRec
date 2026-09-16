@@ -92,6 +92,43 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   }
 }
 
+export async function updateProfile(data: {
+  name: string;
+  email: string;
+  institutionName?: string;
+  department?: string;
+  currentPassword?: string;
+}): Promise<AuthUser> {
+  const response = await fetchJson<{ user: AuthUser }>("/api/auth/profile", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  return response.user;
+}
+
+export async function getProfile(): Promise<AuthUser> {
+  const response = await fetchJson<{ user: AuthUser }>("/api/auth/profile");
+  return response.user;
+}
+
+export async function changePassword(data: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<void> {
+  await fetchJson<void>("/api/auth/password", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateAvatar(avatarUrl: string | null): Promise<AuthUser> {
+  const response = await fetchJson<{ user: AuthUser }>("/api/auth/avatar", {
+    method: "PATCH",
+    body: JSON.stringify({ avatarUrl }),
+  });
+  return response.user;
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // 2. Experiments
 // ────────────────────────────────────────────────────────────────────────────

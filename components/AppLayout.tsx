@@ -350,8 +350,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       {user.role === "REVIEWER" ? "Peer Reviewer" : "Researcher"}
                     </p>
                   </div>
-                  <div className="w-9 h-9 rounded-full bg-primary/15 text-primary flex items-center justify-center text-sm font-semibold border border-primary/30">
-                    {initials}
+                  <div className="w-9 h-9 rounded-full bg-primary/15 text-primary flex items-center justify-center text-sm font-semibold border border-primary/30 overflow-hidden flex-shrink-0">
+                    {user.avatarUrl ? (
+                      <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
+                    ) : (
+                      initials
+                    )}
                   </div>
                   <ChevronDown className="w-3.5 h-3.5 text-ink-faint hidden md:block" />
                 </button>
@@ -390,12 +394,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
                     <div className="py-2">
                       <Link
-                        href="/login"
+                        href="/profile"
                         onClick={() => setUserMenuOpen(false)}
                         className="flex items-center gap-2 px-2 py-1.5 text-xs text-ink-muted hover:text-ink hover:bg-surface-elevated transition-colors"
                       >
                         <User className="w-3.5 h-3.5" />
-                        <span>Switch Researcher Account</span>
+                        <span>Profile</span>
                       </Link>
                     </div>
 
@@ -464,6 +468,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </nav>
 
               <div className="border-t border-border">
+                <Link
+                  href="/profile"
+                  onClick={() => setMobileNavOpen(false)}
+                  className="flex w-full min-h-11 items-center gap-3 px-4 text-sm font-medium text-ink-muted hover:text-ink hover:bg-surface-elevated transition-colors"
+                >
+                  <User className="w-4 h-4 flex-shrink-0" />
+                  <span>Profile</span>
+                </Link>
                 <button
                   type="button"
                   onClick={toggleTheme}

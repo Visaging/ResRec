@@ -88,6 +88,7 @@ export async function POST(request: Request) {
           name: user.name,
           email: user.email,
           role: user.role,
+          avatarUrl: user.avatarUrl || null,
           institutionId: user.institutionId,
           institutionName: user.institutionName || user.institution?.name || null,
           department: user.department,

@@ -10,6 +10,7 @@ export interface AuthenticatedUser {
   name: string;
   email: string;
   role: string;
+  avatarUrl?: string | null;
   institutionId?: string | null;
   institutionName?: string | null;
   department?: string | null;
@@ -90,11 +91,25 @@ export async function getSessionUser(req?: Request): Promise<AuthenticatedUser |
       return null;
     }
 
+    let avatarUrl: string | null = (session.user as any).avatarUrl || null;
+    if (avatarUrl === null || avatarUrl === undefined) {
+      try {
+        const rows: any[] = await prisma.$queryRawUnsafe(
+          'SELECT "avatarUrl" FROM "User" WHERE "id" = $1',
+          session.user.id
+        );
+        if (rows?.[0]?.avatarUrl) {
+          avatarUrl = rows[0].avatarUrl;
+        }
+      } catch {}
+    }
+
     return {
       id: session.user.id,
       name: session.user.name,
       email: session.user.email,
       role: session.user.role,
+      avatarUrl: avatarUrl || null,
       institutionId: session.user.institutionId,
       institutionName: session.user.institutionName || session.user.institution?.name || null,
       department: session.user.department || null,
