@@ -2,6 +2,28 @@ import { PrismaClient } from "@prisma/client";
 import fs from "fs";
 import path from "path";
 
+function searchForDevDb(dir: string, depth = 0): string | null {
+  if (depth > 4) return null;
+  try {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isFile() && entry.name === "dev.db") {
+        try {
+          if (fs.statSync(/*turbopackIgnore: true*/ fullPath).size > 1024) {
+            return fullPath;
+          }
+        } catch {}
+      }
+      if (entry.isDirectory() && !entry.name.startsWith(".") && entry.name !== "node_modules") {
+        const found = searchForDevDb(fullPath, depth + 1);
+        if (found) return found;
+      }
+    }
+  } catch {}
+  return null;
+}
+
 function getDatabaseUrl(): string {
   // If user provided a custom cloud database URL (e.g., PostgreSQL, Neon, Supabase, Turso), use it directly
   const envUrl = process.env.DATABASE_URL;
@@ -40,33 +62,42 @@ function getDatabaseUrl(): string {
         path.join(__dirname, "..", "..", "prisma", "dev.db"),
         path.join(__dirname, "..", "..", "..", "prisma", "dev.db"),
         path.join("/var/task", "prisma", "dev.db"),
+        path.join("/var/task", "ResRec", "prisma", "dev.db"),
+        path.join("/var/task", "ResRec-main", "prisma", "dev.db"),
         path.join(process.cwd(), ".next", "server", "prisma", "dev.db"),
         path.resolve("./prisma/dev.db"),
       ];
 
-      let copied = false;
+      let sourcePath: string | null = null;
       for (const candidate of candidates) {
         try {
           if (fs.existsSync(/*turbopackIgnore: true*/ candidate) && fs.statSync(/*turbopackIgnore: true*/ candidate).size > 1024) {
-            fs.copyFileSync(candidate, tmpDbPath);
-            // Copy WAL/SHM files if they exist alongside dev.db
-            if (fs.existsSync(/*turbopackIgnore: true*/ `${candidate}-wal`)) {
-              try { fs.copyFileSync(`${candidate}-wal`, `${tmpDbPath}-wal`); } catch {}
-            }
-            if (fs.existsSync(/*turbopackIgnore: true*/ `${candidate}-shm`)) {
-              try { fs.copyFileSync(`${candidate}-shm`, `${tmpDbPath}-shm`); } catch {}
-            }
-            console.log(`[ResRec] Initialized writable /tmp/dev.db from ${candidate}`);
-            copied = true;
+            sourcePath = candidate;
             break;
           }
-        } catch (err) {
-          console.warn(`[ResRec] Could not copy candidate ${candidate}:`, err);
-        }
+        } catch {}
       }
 
-      if (!copied) {
-        console.warn("[ResRec] Source dev.db not found in bundle candidates. Creating fresh database in /tmp.");
+      if (!sourcePath) {
+        // Fallback: search process.cwd() and /var/task recursively
+        sourcePath = searchForDevDb(process.cwd()) || searchForDevDb("/var/task");
+      }
+
+      if (sourcePath) {
+        try {
+          fs.copyFileSync(sourcePath, tmpDbPath);
+          if (fs.existsSync(/*turbopackIgnore: true*/ `${sourcePath}-wal`)) {
+            try { fs.copyFileSync(`${sourcePath}-wal`, `${tmpDbPath}-wal`); } catch {}
+          }
+          if (fs.existsSync(/*turbopackIgnore: true*/ `${sourcePath}-shm`)) {
+            try { fs.copyFileSync(`${sourcePath}-shm`, `${tmpDbPath}-shm`); } catch {}
+          }
+          console.log(`[ResRec] Initialized writable /tmp/dev.db from ${sourcePath}`);
+        } catch (err) {
+          console.error(`[ResRec] Failed to copy ${sourcePath} to ${tmpDbPath}:`, err);
+        }
+      } else {
+        console.warn("[ResRec] Could not locate source dev.db in filesystem candidates or search roots.");
       }
     }
 
