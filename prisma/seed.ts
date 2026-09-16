@@ -1,9 +1,7 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../lib/db/prisma";
 import { CooLEvidenceService } from "../lib/cool/evidence-service";
 import { sha256Hex, sha256Multihash } from "../lib/cool/hash";
 import { hashPassword } from "../lib/auth/password";
-
-const prisma = new PrismaClient();
 
 async function main() {
   console.log("🌱 Starting ResRec database seed with real CooL cryptographic receipts...");
