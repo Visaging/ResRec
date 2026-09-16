@@ -1,5 +1,5 @@
 {
   "framework": "nextjs",
-  "installCommand": "npm install --include=dev",
-  "buildCommand": "npm install --include=dev --no-audit --no-fund && npx prisma db push --skip-generate && if [ \"$SEED_DATABASE\" = \"true\" ]; then npm run db:seed; fi && npm run build"
+  "installCommand": "npm install --include=dev --no-audit --no-fund",
+  "buildCommand": "npx prisma db push --skip-generate && if [ \"$SEED_DATABASE\" = \"true\" ]; then npm run db:seed; fi && npm run build"
 }
