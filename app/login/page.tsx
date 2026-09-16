@@ -238,7 +238,7 @@ function LoginForm() {
           className="lg:col-span-7 bg-surface border border-border shadow-sm p-6 sm:p-8"
         >
           {/* Mode Switcher Tabs */}
-          <div className="flex border-b border-border mb-6">
+          <div className="flex border-b border-border mb-6 overflow-x-auto overscroll-x-contain">
             <button
               type="button"
               onClick={() => {
@@ -246,7 +246,7 @@ function LoginForm() {
                 setError(null);
                 setSuccessMessage(null);
               }}
-              className={`pb-3 px-4 text-sm font-semibold border-b-2 transition-colors cursor-pointer ${
+              className={`pb-3 px-4 text-sm font-semibold border-b-2 transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
                 mode === "login"
                   ? "border-primary text-ink"
                   : "border-transparent text-ink-muted hover:text-ink"
@@ -261,7 +261,7 @@ function LoginForm() {
                 setError(null);
                 setSuccessMessage(null);
               }}
-              className={`pb-3 px-4 text-sm font-semibold border-b-2 transition-colors cursor-pointer ${
+              className={`pb-3 px-4 text-sm font-semibold border-b-2 transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
                 mode === "register"
                   ? "border-primary text-ink"
                   : "border-transparent text-ink-muted hover:text-ink"

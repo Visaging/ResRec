@@ -420,7 +420,7 @@ export default function ExperimentDetailPage() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
-          className="fixed top-6 right-6 z-50 bg-primary text-white px-4 py-3 shadow-xl border border-primary/30 flex items-center gap-2 text-sm"
+          className="fixed left-4 right-4 top-6 z-50 bg-primary text-white px-4 py-3 shadow-xl border border-primary/30 flex items-center gap-2 text-sm sm:left-auto sm:right-6"
         >
           <CheckCircle2 className="w-4 h-4 text-success" />
           <span>{notification}</span>
@@ -459,24 +459,24 @@ export default function ExperimentDetailPage() {
         </div>
 
         {/* Metadata strip */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-sm mt-6 p-4 bg-surface border border-border">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 text-sm mt-6 p-4 bg-surface border border-border">
           <div>
             <span className="text-xs font-medium text-ink-faint uppercase tracking-wide">
               Principal Investigator
             </span>
-            <p className="text-ink font-medium mt-1">{experiment.researcher}</p>
+            <p className="text-ink font-medium mt-1 line-clamp-2">{experiment.researcher}</p>
           </div>
           <div>
             <span className="text-xs font-medium text-ink-faint uppercase tracking-wide">
               Research Group
             </span>
-            <p className="text-ink font-medium mt-1">{experiment.researchGroup}</p>
+            <p className="text-ink font-medium mt-1 line-clamp-2">{experiment.researchGroup}</p>
           </div>
           <div>
             <span className="text-xs font-medium text-ink-faint uppercase tracking-wide">
               Instrument
             </span>
-            <p className="text-ink font-medium mt-1">
+            <p className="text-ink font-medium mt-1 line-clamp-2">
               {experiment.instrument || "Not specified"}
             </p>
           </div>
@@ -484,7 +484,7 @@ export default function ExperimentDetailPage() {
             <span className="text-xs font-medium text-ink-faint uppercase tracking-wide">
               Protocol
             </span>
-            <p className="text-ink font-medium mt-1">
+            <p className="text-ink font-medium mt-1 line-clamp-2">
               {experiment.protocol || "Standard Research Protocol"}
             </p>
           </div>
@@ -492,7 +492,7 @@ export default function ExperimentDetailPage() {
             <span className="text-xs font-medium text-ink-faint uppercase tracking-wide">
               Created
             </span>
-            <p className="text-ink font-medium mt-1">
+            <p className="text-ink font-medium mt-1 text-xs">
               {formatDateTime(experiment.createdAt)}
             </p>
           </div>
@@ -500,7 +500,7 @@ export default function ExperimentDetailPage() {
             <span className="text-xs font-medium text-ink-faint uppercase tracking-wide">
               Last Updated
             </span>
-            <p className="text-ink font-medium mt-1">
+            <p className="text-ink font-medium mt-1 text-xs">
               {formatDateTime(experiment.updatedAt)}
             </p>
           </div>
@@ -548,29 +548,29 @@ export default function ExperimentDetailPage() {
 
                   {/* Measurements Chart */}
                   {measurements.length > 0 && (
-                    <Card className="p-6">
-                      <div className="flex items-center justify-between mb-4">
+                    <Card className="p-4 sm:p-6">
+                      <div className="flex items-center justify-between mb-4 gap-2">
                         <h3 className="text-base font-semibold text-ink">
                           Measurement Telemetry Stream
                         </h3>
-                        <span className="text-xs font-medium text-ink-muted">
-                          {measurements.length} points recorded
+                        <span className="text-xs font-medium text-ink-muted whitespace-nowrap">
+                          {measurements.length} points
                         </span>
                       </div>
-                      <div className="h-64 w-full">
+                      <div className="h-40 sm:h-64 w-full -mx-2 sm:mx-0">
                         <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={chartData}>
+                          <LineChart data={chartData} margin={{ left: -15, right: 0, top: 5, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                             <XAxis
                               dataKey="trial"
                               stroke="#6b7280"
-                              fontSize={12}
+                              fontSize={11}
                               tickLine={false}
                               label={{ value: "Trial #", position: "insideBottomRight", offset: -5 }}
                             />
                             <YAxis
                               stroke="#6b7280"
-                              fontSize={12}
+                              fontSize={11}
                               tickLine={false}
                               domain={["auto", "auto"]}
                               label={{
@@ -670,11 +670,11 @@ export default function ExperimentDetailPage() {
           {/* Measurements Tab */}
           {activeTab === "measurements" && (
             <div>
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
                 <p className="text-sm text-ink-muted">
                   {measurements.length} measurement records
                 </p>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     variant="secondary"
                     size="sm"
@@ -704,19 +704,20 @@ export default function ExperimentDetailPage() {
                 </div>
               </div>
 
-              <Card className="p-0">
-                <div className="overflow-x-auto">
+              <Card className="p-0 overflow-hidden">
+                {/* Desktop Table */}
+                <div className="hidden sm:block overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="border-b border-border bg-surface">
                       <tr>
-                        <th className="w-8 py-4 px-6" />
-                        <th className="text-left py-4 px-6 font-medium text-ink">Trial</th>
-                        <th className="text-left py-4 px-6 font-medium text-ink">Timestamp</th>
-                        <th className="text-left py-4 px-6 font-medium text-ink">Value</th>
-                        <th className="text-left py-4 px-6 font-medium text-ink">Unit</th>
-                        <th className="text-left py-4 px-6 font-medium text-ink">Instrument</th>
-                        <th className="text-left py-4 px-6 font-medium text-ink">Evidence</th>
-                        <th className="text-left py-4 px-6 font-medium text-ink">Status</th>
+                        <th className="w-8 py-4 px-4 sm:px-6" />
+                        <th className="text-left py-4 px-4 sm:px-6 font-medium text-ink">Trial</th>
+                        <th className="text-left py-4 px-4 sm:px-6 font-medium text-ink">Timestamp</th>
+                        <th className="text-left py-4 px-4 sm:px-6 font-medium text-ink">Value</th>
+                        <th className="text-left py-4 px-4 sm:px-6 font-medium text-ink">Unit</th>
+                        <th className="text-left py-4 px-4 sm:px-6 font-medium text-ink">Instrument</th>
+                        <th className="text-left py-4 px-4 sm:px-6 font-medium text-ink">Evidence</th>
+                        <th className="text-left py-4 px-4 sm:px-6 font-medium text-ink">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -733,7 +734,7 @@ export default function ExperimentDetailPage() {
                               )
                             }
                           >
-                            <td className="py-4 px-6">
+                            <td className="py-4 px-4 sm:px-6">
                               <motion.div
                                 animate={{
                                   rotate: expandedMeasurement === m.id ? 180 : 0,
@@ -743,13 +744,13 @@ export default function ExperimentDetailPage() {
                                 <ChevronDown className="w-4 h-4 text-ink-muted" />
                               </motion.div>
                             </td>
-                            <td className="py-4 px-6 font-mono text-ink">
+                            <td className="py-4 px-4 sm:px-6 font-mono text-ink">
                               <span className="font-medium">{m.trial.toString().padStart(2, "0")}</span>
                             </td>
-                            <td className="py-4 px-6 text-sm text-ink-muted">
+                            <td className="py-4 px-4 sm:px-6 text-sm text-ink-muted whitespace-nowrap">
                               {new Date(m.timestamp).toLocaleTimeString("en-IN")}
                             </td>
-                            <td className="py-4 px-6 text-sm font-medium text-ink">
+                            <td className="py-4 px-4 sm:px-6 text-sm font-medium text-ink">
                               {m.value}
                               {m.correctionOf && (
                                 <span className="ml-2 inline-flex items-center px-2 py-0.5 text-xs font-medium border border-warning/25 bg-warning/10 text-warning">
@@ -757,9 +758,11 @@ export default function ExperimentDetailPage() {
                                 </span>
                               )}
                             </td>
-                            <td className="py-4 px-6 text-sm text-ink">{m.unit}</td>
-                            <td className="py-4 px-6 text-sm text-ink font-mono">{m.instrument}</td>
-                            <td className="py-4 px-6 text-sm text-ink">
+                            <td className="py-4 px-4 sm:px-6 text-sm text-ink">{m.unit}</td>
+                            <td className="py-4 px-4 sm:px-6 text-sm text-ink font-mono text-xs">
+                              {m.instrument}
+                            </td>
+                            <td className="py-4 px-4 sm:px-6 text-sm text-ink">
                               {m.evidenceId ? (
                                 <Link
                                   href={`/evidence/${m.evidenceId}`}
@@ -771,7 +774,7 @@ export default function ExperimentDetailPage() {
                                 <span className="text-ink-faint">-</span>
                               )}
                             </td>
-                            <td className="py-4 px-6">
+                            <td className="py-4 px-4 sm:px-6">
                               <div className="flex items-center gap-2">
                                 <VerificationIcon status={m.status} animate={false} />
                                 <span className="text-xs font-medium capitalize">
@@ -791,8 +794,8 @@ export default function ExperimentDetailPage() {
                                 exit={{ opacity: 0, height: 0 }}
                                 transition={{ duration: 0.2 }}
                               >
-                                <td colSpan={8} className="bg-surface px-6">
-                                  <div className="py-4 grid grid-cols-4 gap-6 text-sm border-l-2 border-primary pl-4">
+                                <td colSpan={8} className="bg-surface px-4 sm:px-6">
+                                  <div className="py-4 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6 text-sm border-l-2 border-primary pl-4">
                                     <div>
                                       <span className="text-xs font-medium text-ink-faint uppercase tracking-wide">
                                         Raw Value
@@ -829,14 +832,14 @@ export default function ExperimentDetailPage() {
                                       </div>
                                     </div>
                                     {m.evidenceId && (
-                                      <div className="col-span-4 mt-2 pt-3 border-t border-border flex items-center justify-between">
+                                      <div className="col-span-2 sm:col-span-4 mt-2 pt-3 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                         <div className="flex items-center gap-2">
                                           <span className="text-xs font-medium text-ink-faint">Sealed Receipt ID:</span>
-                                          <code className="text-xs font-mono text-ink bg-surface-elevated px-2 py-0.5 border border-border">
+                                          <code className="text-xs font-mono text-ink bg-surface-elevated px-2 py-0.5 border border-border truncate">
                                             {m.evidenceId}
                                           </code>
                                         </div>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 flex-wrap">
                                           {(() => {
                                             const rec = evidenceRecords.find(
                                               (r) =>
@@ -850,7 +853,7 @@ export default function ExperimentDetailPage() {
                                                   <button
                                                     type="button"
                                                     onClick={() => setSelectedEvidenceRecord(rec)}
-                                                    className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-ink bg-surface border border-border hover:bg-surface-elevated transition-colors"
+                                                    className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-ink bg-surface border border-border hover:bg-surface-elevated transition-colors whitespace-nowrap"
                                                   >
                                                     <Code2 className="w-3.5 h-3.5 mr-1 text-primary" />
                                                     View Receipt JSON
@@ -869,7 +872,7 @@ export default function ExperimentDetailPage() {
                                       </div>
                                     )}
                                     {m.correctionOf && (
-                                      <div className="col-span-4 mt-2 pt-3 border-t border-border">
+                                      <div className="col-span-2 sm:col-span-4 mt-2 pt-3 border-t border-border">
                                         <span className="text-xs font-medium text-ink-faint uppercase tracking-wide">
                                           Correction Trace
                                         </span>
@@ -890,6 +893,102 @@ export default function ExperimentDetailPage() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Mobile Card Layout */}
+                <div className="sm:hidden space-y-3 p-4">
+                  {measurements.length === 0 ? (
+                    <p className="text-sm text-ink-muted py-4 text-center">
+                      No measurements recorded yet.
+                    </p>
+                  ) : (
+                    measurements.map((m, index) => (
+                      <motion.div
+                        key={m.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.02 }}
+                        className="border border-border bg-surface-elevated p-3 cursor-pointer"
+                        onClick={() =>
+                          setExpandedMeasurement(
+                            expandedMeasurement === m.id ? null : m.id
+                          )
+                        }
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-medium text-ink-muted">Trial #{m.trial}</p>
+                            <p className="text-sm font-semibold text-ink">
+                              {m.value} {m.unit}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <VerificationIcon status={m.status} animate={false} />
+                            <motion.div
+                              animate={{
+                                rotate: expandedMeasurement === m.id ? 180 : 0,
+                              }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              <ChevronDown className="w-4 h-4 text-ink-muted" />
+                            </motion.div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 text-xs border-t border-border pt-3">
+                          <div>
+                            <p className="text-ink-faint">Time</p>
+                            <p className="text-ink font-mono">
+                              {new Date(m.timestamp).toLocaleTimeString("en-IN")}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-ink-faint">Status</p>
+                            <p className="text-ink capitalize">
+                              {m.status.replace(/_/g, " ")}
+                            </p>
+                          </div>
+                        </div>
+
+                        <AnimatePresence>
+                          {expandedMeasurement === m.id && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="mt-3 pt-3 border-t border-border space-y-2 text-xs"
+                            >
+                              {m.instrument && (
+                                <div>
+                                  <p className="text-ink-faint">Instrument</p>
+                                  <p className="text-ink font-mono">{m.instrument}</p>
+                                </div>
+                              )}
+                              {m.evidenceId && (
+                                <div>
+                                  <p className="text-ink-faint">Receipt ID</p>
+                                  <p className="text-ink font-mono truncate">{m.evidenceId}</p>
+                                  <Link
+                                    href={`/evidence/${m.evidenceId}`}
+                                    className="text-primary hover:underline text-xs mt-1 inline-block"
+                                  >
+                                    View Receipt →
+                                  </Link>
+                                </div>
+                              )}
+                              {m.correctionOf && (
+                                <div>
+                                  <p className="text-ink-faint">Correction Note</p>
+                                  <p className="text-ink">{m.correctionReason}</p>
+                                </div>
+                              )}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.div>
+                    ))
+                  )}
                 </div>
               </Card>
             </div>
@@ -1004,16 +1103,16 @@ export default function ExperimentDetailPage() {
           {/* Evidence Tab */}
           {activeTab === "evidence" && (
             <div>
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
                 <div>
                   <h3 className="text-base font-semibold text-ink">
                     Cryptographic Evidence Records ({evidenceRecords.length})
                   </h3>
-                  <p className="text-sm text-ink-muted">
+                  <p className="text-sm text-ink-muted mt-1">
                     Immutable CooL receipts sealed with Intel TDX runtime attestation and ML-DSA-65 post-quantum signatures.
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <Button
                     variant="secondary"
                     size="sm"
@@ -1032,7 +1131,7 @@ export default function ExperimentDetailPage() {
                     }
                   >
                     <Download className="w-4 h-4 mr-1.5" />
-                    Export All Receipts (.json)
+                    Export
                   </Button>
                 </div>
               </div>
@@ -1046,8 +1145,9 @@ export default function ExperimentDetailPage() {
                   />
                 </Card>
               ) : (
-                <Card className="p-0">
-                  <div className="overflow-x-auto">
+                <Card className="p-0 overflow-hidden">
+                  {/* Desktop Table */}
+                  <div className="hidden sm:block overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead className="border-b border-border bg-surface">
                         <tr>
@@ -1127,6 +1227,75 @@ export default function ExperimentDetailPage() {
                         ))}
                       </tbody>
                     </table>
+                  </div>
+
+                  {/* Mobile Card Layout */}
+                  <div className="sm:hidden space-y-3 p-4">
+                    {evidenceRecords.map((record, index) => (
+                      <motion.div
+                        key={record.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.03 }}
+                        className="border border-border bg-surface-elevated p-3"
+                      >
+                        <div className="space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-mono text-xs text-ink-muted truncate">
+                                {record.id}
+                              </p>
+                              <p className="text-sm font-medium text-ink mt-1">
+                                {record.eventType}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <VerificationIcon
+                                status={record.signatureVerification}
+                                animate={false}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 text-xs border-t border-border pt-2">
+                            <div>
+                              <p className="text-ink-faint">Sequence</p>
+                              <p className="text-ink font-mono font-medium">
+                                {record.sequence}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-ink-faint">Issued</p>
+                              <p className="text-ink">
+                                {new Date(record.issuedAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="pt-2 border-t border-border">
+                            <p className="text-ink-faint text-xs mb-1">Verification</p>
+                            <p className="text-ink capitalize text-xs">
+                              {record.signatureVerification.replace(/_/g, " ")}
+                            </p>
+                          </div>
+
+                          <div className="flex gap-2 pt-2 border-t border-border">
+                            <Link
+                              href={`/evidence/${record.id}`}
+                              className="flex-1 text-center px-3 py-2 text-xs font-medium text-primary bg-surface border border-border hover:bg-surface-elevated transition-colors"
+                            >
+                              View Receipt
+                            </Link>
+                            <CopyButton
+                              text={
+                                record.evidenceJson ||
+                                JSON.stringify(record, null, 2)
+                              }
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
                   </div>
                 </Card>
               )}

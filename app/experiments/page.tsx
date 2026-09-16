@@ -241,7 +241,7 @@ export default function ExperimentsPage() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
-          className="fixed top-6 right-6 z-50 bg-primary text-white px-4 py-3 shadow-xl border border-primary/30 flex items-center gap-2 text-sm"
+          className="fixed left-4 right-4 top-6 z-50 bg-primary text-white px-4 py-3 shadow-xl border border-primary/30 flex items-center gap-2 text-sm sm:left-auto sm:right-6"
         >
           <CheckCircle2 className="w-4 h-4 text-success" />
           <span>{notification}</span>
@@ -281,9 +281,9 @@ export default function ExperimentsPage() {
       />
 
       {/* Advanced Filters */}
-      <Card className="p-6 mb-6">
-        <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-12 lg:col-span-4">
+      <Card className="p-4 sm:p-6 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="sm:col-span-2 lg:col-span-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-faint pointer-events-none" />
               <Input
@@ -294,7 +294,7 @@ export default function ExperimentsPage() {
               />
             </div>
           </div>
-          <div className="col-span-6 sm:col-span-3 lg:col-span-2">
+          <div>
             <Select
               options={[
                 { value: "all", label: "All Statuses" },
@@ -308,7 +308,7 @@ export default function ExperimentsPage() {
               className="w-full"
             />
           </div>
-          <div className="col-span-6 sm:col-span-3 lg:col-span-2">
+          <div>
             <Select
               options={[
                 { value: "all", label: "All Integrities" },
@@ -322,7 +322,7 @@ export default function ExperimentsPage() {
               className="w-full"
             />
           </div>
-          <div className="col-span-12 sm:col-span-6 lg:col-span-4">
+          <div className="sm:col-span-2 lg:col-span-1">
             <Select
               options={[
                 { value: "updatedDesc", label: "Sort: Newest First" },
@@ -375,12 +375,12 @@ export default function ExperimentsPage() {
       </Card>
 
       {/* Results summary */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 mb-4">
         <p className="text-sm text-ink-muted">
           Showing <span className="font-medium text-ink">{filteredExperiments.length}</span> of{" "}
           <span className="font-medium text-ink">{experiments.length}</span> experiments
         </p>
-        <div className="flex items-center gap-3 text-sm text-ink-muted">
+        <div className="flex items-center gap-3 text-sm text-ink-muted flex-wrap sm:flex-nowrap">
           <Button variant="outline" size="sm" onClick={handleExportAll}>
             <Download className="w-3 h-3 mr-1" />
             Export
@@ -427,91 +427,169 @@ export default function ExperimentsPage() {
           />
         </Card>
       ) : (
-        <Card className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="border-b border-border bg-surface">
-                <tr>
-                  <th className="text-left py-4 px-6 font-medium text-ink w-36">
-                    Experiment ID
-                  </th>
-                  <th className="text-left py-4 px-6 font-medium text-ink">
-                    Title
-                  </th>
-                  <th className="text-left py-4 px-6 font-medium text-ink">
-                    Principal Investigator
-                  </th>
-                  <th className="text-left py-4 px-6 font-medium text-ink">
-                    Status
-                  </th>
-                  <th className="text-center py-4 px-6 font-medium text-ink">
-                    Evidence Count
-                  </th>
-                  <th className="text-center py-4 px-6 font-medium text-ink">
-                    Integrity
-                  </th>
-                  <th className="text-left py-4 px-6 font-medium text-ink">
-                    Last Updated
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filteredExperiments.map((exp, index) => (
-                  <motion.tr
-                    key={exp.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.02 }}
-                    className="hover:bg-surface-elevated transition-all cursor-pointer group"
-                    onClick={() => {
-                      window.location.href = `/experiments/${exp.id}`;
-                    }}
-                  >
-                    <td className="py-4 px-6 font-mono text-ink">
-                      <Link
-                        href={`/experiments/${exp.id}`}
-                        className="block hover:text-primary transition-colors font-medium"
+        <>
+          {/* Desktop Table */}
+          <div className="hidden md:block">
+            <Card className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="border-b border-border bg-surface">
+                    <tr>
+                      <th className="text-left py-4 px-6 font-medium text-ink w-36">
+                        Experiment ID
+                      </th>
+                      <th className="text-left py-4 px-6 font-medium text-ink">
+                        Title
+                      </th>
+                      <th className="text-left py-4 px-6 font-medium text-ink">
+                        Principal Investigator
+                      </th>
+                      <th className="text-left py-4 px-6 font-medium text-ink">
+                        Status
+                      </th>
+                      <th className="text-center py-4 px-6 font-medium text-ink">
+                        Evidence Count
+                      </th>
+                      <th className="text-center py-4 px-6 font-medium text-ink">
+                        Integrity
+                      </th>
+                      <th className="text-left py-4 px-6 font-medium text-ink">
+                        Last Updated
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {filteredExperiments.map((exp, index) => (
+                      <motion.tr
+                        key={exp.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.02 }}
+                        className="hover:bg-surface-elevated transition-all cursor-pointer group"
+                        onClick={() => {
+                          window.location.href = `/experiments/${exp.id}`;
+                        }}
                       >
-                        {exp.id}
-                      </Link>
-                    </td>
-                    <td className="py-4 px-6 text-sm text-ink">
-                      <div className="font-medium group-hover:text-primary transition-colors">
-                        {exp.title}
-                      </div>
-                      <div className="text-xs text-ink-muted mt-1 truncate max-w-md">
-                        {exp.objective || "Scientific research experiment"}
-                      </div>
-                    </td>
-                    <td className="py-4 px-6 text-sm text-ink">
-                      <div>{exp.researcher}</div>
-                      <div className="text-xs text-ink-muted mt-1">
-                        {exp.researchGroup}
-                      </div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <StatusBadge status={exp.status} />
-                    </td>
-                    <td className="py-4 px-6 text-center font-mono text-sm text-ink">
-                      {exp.evidenceCount || 1}
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <VerificationIcon status={exp.integrityStatus || "verified"} />
-                        <span className="text-xs font-medium text-ink capitalize">
-                          {exp.integrityStatus || "verified"}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6 text-sm text-ink-muted">
-                      {formatDateTime(exp.updatedAt)}
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
+                        <td className="py-4 px-6 font-mono text-ink">
+                          <Link
+                            href={`/experiments/${exp.id}`}
+                            className="block hover:text-primary transition-colors font-medium"
+                          >
+                            {exp.id}
+                          </Link>
+                        </td>
+                        <td className="py-4 px-6 text-sm text-ink">
+                          <div className="font-medium group-hover:text-primary transition-colors">
+                            {exp.title}
+                          </div>
+                          <div className="text-xs text-ink-muted mt-1 truncate max-w-md">
+                            {exp.objective || "Scientific research experiment"}
+                          </div>
+                        </td>
+                        <td className="py-4 px-6 text-sm text-ink">
+                          <div>{exp.researcher}</div>
+                          <div className="text-xs text-ink-muted mt-1">
+                            {exp.researchGroup}
+                          </div>
+                        </td>
+                        <td className="py-4 px-6">
+                          <StatusBadge status={exp.status} />
+                        </td>
+                        <td className="py-4 px-6 text-center font-mono text-sm text-ink">
+                          {exp.evidenceCount || 1}
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <VerificationIcon status={exp.integrityStatus || "verified"} />
+                            <span className="text-xs font-medium text-ink capitalize">
+                              {exp.integrityStatus || "verified"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6 text-sm text-ink-muted">
+                          {formatDateTime(exp.updatedAt)}
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
           </div>
-        </Card>
+
+          {/* Mobile Card Layout */}
+          <div className="md:hidden space-y-3">
+            {filteredExperiments.map((exp, index) => (
+              <motion.div
+                key={exp.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.02 }}
+              >
+                <Link href={`/experiments/${exp.id}`}>
+                  <Card className="p-4 hover:border-border-strong transition-colors cursor-pointer">
+                    <div className="space-y-3">
+                      {/* ID and Title */}
+                      <div className="min-w-0">
+                        <p className="font-mono text-xs text-ink-muted truncate">
+                          {exp.id}
+                        </p>
+                        <p className="text-sm font-medium text-ink mt-1 line-clamp-2">
+                          {exp.title}
+                        </p>
+                        {exp.objective && (
+                          <p className="text-xs text-ink-muted mt-1 line-clamp-2">
+                            {exp.objective}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Researcher and Group */}
+                      <div className="pt-2 border-t border-border">
+                        <p className="text-xs text-ink-muted">Researcher</p>
+                        <p className="text-sm font-medium text-ink">{exp.researcher}</p>
+                        {exp.researchGroup && (
+                          <p className="text-xs text-ink-muted mt-1">
+                            {exp.researchGroup}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Status, Evidence, Integrity, Date */}
+                      <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border">
+                        <div>
+                          <p className="text-xs text-ink-muted mb-1">Status</p>
+                          <StatusBadge status={exp.status} className="text-xs" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-ink-muted mb-1">Integrity</p>
+                          <div className="flex items-center gap-1">
+                            <VerificationIcon status={exp.integrityStatus || "verified"} />
+                            <span className="text-xs font-medium capitalize">
+                              {exp.integrityStatus || "verified"}
+                            </span>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs text-ink-muted">Evidence</p>
+                          <p className="text-sm font-mono font-medium text-ink">
+                            {exp.evidenceCount || 1}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-ink-muted">Updated</p>
+                          <p className="text-xs text-ink">
+                            {new Date(exp.updatedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Register New Experiment Modal */}

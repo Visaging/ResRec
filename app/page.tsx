@@ -52,7 +52,7 @@ function IntegrityHealthGauge({
 }) {
   if (totalRecords === 0 || percentage === null) {
     return (
-      <div className="relative w-full max-w-[280px]">
+      <div className="relative w-full max-w-full sm:max-w-[280px]">
         <svg
           viewBox="0 0 180 100"
           className="w-full"
@@ -69,7 +69,7 @@ function IntegrityHealthGauge({
         </svg>
 
         <div className="absolute inset-x-0 bottom-0 flex flex-col items-center pointer-events-none">
-          <div className="text-3xl font-semibold text-ink-muted tabular-nums-sm">
+          <div className="text-2xl sm:text-3xl font-semibold text-ink-muted tabular-nums-sm">
             —
           </div>
           <div className="text-xs text-ink-faint uppercase tracking-wide mt-1">
@@ -89,7 +89,7 @@ function IntegrityHealthGauge({
       : "var(--color-error)";
 
   return (
-    <div className="relative w-full max-w-[280px]">
+    <div className="relative w-full max-w-full sm:max-w-[280px]">
       <svg
         viewBox="0 0 180 100"
         className="w-full"
@@ -121,7 +121,7 @@ function IntegrityHealthGauge({
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.4 }}
-          className="text-4xl font-semibold text-ink tabular-nums-sm"
+          className="text-3xl sm:text-4xl font-semibold text-ink tabular-nums-sm"
         >
           {percentage}%
         </motion.div>
@@ -155,7 +155,7 @@ function VerificationActivityChart({
 
   return (
     <div>
-      <div className="h-[240px] -ml-2 relative">
+      <div className="h-40 sm:h-64 md:h-[240px] -ml-2 relative">
         {totalActivity === 0 && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 bg-surface/60 backdrop-blur-[1px] z-10">
             <p className="text-sm font-medium text-ink-muted">No verification activity in the last 7 days</p>
@@ -407,8 +407,8 @@ export default function DashboardPage() {
         }
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <Card className="p-6 flex flex-col items-center justify-center">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
+        <Card className="p-4 sm:p-6 flex flex-col items-center justify-center">
           <h2 className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-4 self-start">
             Integrity Health
           </h2>
@@ -418,7 +418,7 @@ export default function DashboardPage() {
           />
         </Card>
 
-        <Card className="p-6 lg:col-span-2">
+        <Card className="p-4 sm:p-6 lg:col-span-2">
           <h2 className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-4">
             Verification Activity
           </h2>
@@ -426,8 +426,8 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <Card className="p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
+        <Card className="p-4 sm:p-6">
           <h2 className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-2">
             Research Portfolio
           </h2>
@@ -438,7 +438,7 @@ export default function DashboardPage() {
           />
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-4 sm:p-6">
           <h2 className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-4">
             Recent Evidence Activity
           </h2>
@@ -464,35 +464,82 @@ export default function DashboardPage() {
               No experiments recorded yet.
             </p>
           ) : (
-            <ul className="divide-y divide-border">
-              {recentExperiments.map((exp, index) => (
-                <motion.li
-                  key={exp.id}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.04 }}
-                >
-                  <Link
-                    href={`/experiments/${exp.id}`}
-                    className="flex items-center gap-4 px-6 py-4 hover:bg-surface-elevated transition-colors"
+            <>
+              {/* Desktop List */}
+              <ul className="hidden sm:divide-y sm:divide-border">
+                {recentExperiments.map((exp, index) => (
+                  <motion.li
+                    key={exp.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.04 }}
                   >
-                    <FlaskConical className="w-4 h-4 text-ink-faint flex-shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-mono text-xs text-ink-muted">{exp.id}</p>
-                      <p className="text-sm font-medium text-ink truncate">{exp.title}</p>
-                    </div>
-                    <span className="text-sm text-ink-muted hidden md:block">
-                      {exp.researcher}
-                    </span>
-                    <span className="text-sm text-ink-muted tabular-nums-sm hidden sm:block">
-                      {exp.evidenceCount} records
-                    </span>
-                    <StatusBadge status={exp.status} />
-                    <VerificationIcon status={exp.integrityStatus} animate={false} />
-                  </Link>
-                </motion.li>
-              ))}
-            </ul>
+                    <Link
+                      href={`/experiments/${exp.id}`}
+                      className="flex flex-wrap items-center gap-2 sm:gap-4 px-4 sm:px-6 py-3 sm:py-4 hover:bg-surface-elevated transition-colors"
+                    >
+                      <FlaskConical className="w-4 h-4 text-ink-faint flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-mono text-xs text-ink-muted">{exp.id}</p>
+                        <p className="text-sm font-medium text-ink truncate">{exp.title}</p>
+                      </div>
+                      <div className="flex gap-2 sm:gap-3 flex-wrap sm:flex-nowrap sm:ml-auto">
+                        <span className="text-sm text-ink-muted hidden md:block">
+                          {exp.researcher}
+                        </span>
+                        <span className="text-sm text-ink-muted tabular-nums-sm hidden sm:block">
+                          {exp.evidenceCount} records
+                        </span>
+                        <StatusBadge status={exp.status} />
+                        <VerificationIcon status={exp.integrityStatus} animate={false} />
+                      </div>
+                    </Link>
+                  </motion.li>
+                ))}
+              </ul>
+
+              {/* Mobile Card Layout */}
+              <div className="sm:hidden space-y-3 p-4">
+                {recentExperiments.map((exp, index) => (
+                  <motion.div
+                    key={exp.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.04 }}
+                  >
+                    <Link href={`/experiments/${exp.id}`}>
+                      <div className="border border-border bg-surface-elevated p-3 hover:border-border-strong transition-colors">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-mono text-xs text-ink-muted truncate">{exp.id}</p>
+                            <p className="text-sm font-medium text-ink line-clamp-2 mt-1">
+                              {exp.title}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <VerificationIcon status={exp.integrityStatus} animate={false} />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-border">
+                          <div>
+                            <p className="text-ink-faint">Researcher</p>
+                            <p className="text-ink line-clamp-1">{exp.researcher}</p>
+                          </div>
+                          <div>
+                            <p className="text-ink-faint">Records</p>
+                            <p className="text-ink font-mono">{exp.evidenceCount}</p>
+                          </div>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between">
+                          <StatusBadge status={exp.status} />
+                          <ArrowRight className="w-3.5 h-3.5 text-ink-muted" />
+                        </div>
+                      </div>
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
+            </>
           )}
         </Card>
       </Section>

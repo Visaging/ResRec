@@ -59,9 +59,9 @@ export default function EvidenceDetailPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <Skeleton className="h-8 w-64 mb-4" />
-        <Card className="p-8">
+        <Card className="p-4 sm:p-8">
           <Skeleton className="h-64 w-full" />
         </Card>
       </div>
@@ -72,9 +72,9 @@ export default function EvidenceDetailPage() {
     return (
       <div>
         <PageHeader title="Evidence Record Not Found" />
-        <Card className="p-8">
+        <Card className="p-4 sm:p-8">
           <p className="text-sm text-ink-muted mb-4">
-            The cryptographic evidence receipt with ID <span className="font-mono">{id}</span> could not be located in the registry.
+            The cryptographic evidence receipt with ID <span className="font-mono text-xs">{id}</span> could not be located in the registry.
           </p>
           <Link
             href="/evidence"
@@ -96,7 +96,7 @@ export default function EvidenceDetailPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Back Navigation */}
       <div className="flex items-center gap-2">
         <Link
@@ -116,23 +116,23 @@ export default function EvidenceDetailPage() {
           <div className="flex items-center gap-2">
             <Link
               href="/provenance"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-surface border border-border text-ink hover:bg-surface-elevated transition-colors"
+              className="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-xs font-semibold bg-surface border border-border text-ink hover:bg-surface-elevated transition-colors truncate"
             >
-              <GitBranch className="w-3.5 h-3.5" /> View in Provenance Graph
+              <GitBranch className="w-3.5 h-3.5 flex-shrink-0" /> View in Provenance Graph
             </Link>
           </div>
         }
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Main Details */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           {/* Core Metadata */}
-          <Card className="p-6">
-            <h3 className="text-base font-semibold text-ink mb-4 pb-2 border-b border-border">
+          <Card className="p-4 sm:p-6">
+            <h3 className="text-base font-semibold text-ink mb-3 sm:mb-4 pb-2 border-b border-border">
               Record Metadata
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <span className="text-xs font-medium text-ink-muted uppercase tracking-wide">
                   Event Type
@@ -161,8 +161,8 @@ export default function EvidenceDetailPage() {
                 <span className="text-xs font-medium text-ink-muted uppercase tracking-wide">
                   Execution ID
                 </span>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="text-xs font-mono text-ink">{record.executionId}</span>
+                <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+                  <span className="text-xs font-mono text-ink truncate">{record.executionId}</span>
                   <CopyButton text={record.executionId} />
                 </div>
               </div>
@@ -170,18 +170,18 @@ export default function EvidenceDetailPage() {
           </Card>
 
           {/* Cryptographic Commitments */}
-          <Card className="p-6">
-            <h3 className="text-base font-semibold text-ink mb-4 pb-2 border-b border-border flex items-center gap-2">
-              <KeyRound className="w-4 h-4 text-primary" />
+          <Card className="p-4 sm:p-6">
+            <h3 className="text-base font-semibold text-ink mb-3 sm:mb-4 pb-2 border-b border-border flex items-center gap-2">
+              <KeyRound className="w-4 h-4 text-primary flex-shrink-0" />
               Cryptographic Multihash Commitments
             </h3>
 
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div>
                 <span className="text-xs font-medium text-ink-muted uppercase tracking-wide block mb-1">
                   Metadata Commitment
                 </span>
-                <div className="p-2.5 bg-surface-elevated border border-border flex items-center justify-between gap-2">
+                <div className="p-2 sm:p-2.5 bg-surface-elevated border border-border flex items-center justify-between gap-2 min-w-0">
                   <span className="font-mono text-xs text-ink break-all">
                     {record.metadataCommitment}
                   </span>
@@ -194,7 +194,7 @@ export default function EvidenceDetailPage() {
                   <span className="text-xs font-medium text-ink-muted uppercase tracking-wide block mb-1">
                     Input Commitment
                   </span>
-                  <div className="p-2.5 bg-surface-elevated border border-border flex items-center justify-between gap-2">
+                  <div className="p-2 sm:p-2.5 bg-surface-elevated border border-border flex items-center justify-between gap-2 min-w-0">
                     <span className="font-mono text-xs text-ink break-all">
                       {record.inputCommitment}
                     </span>
@@ -208,7 +208,7 @@ export default function EvidenceDetailPage() {
                   <span className="text-xs font-medium text-ink-muted uppercase tracking-wide block mb-1">
                     Output Commitment
                   </span>
-                  <div className="p-2.5 bg-surface-elevated border border-border flex items-center justify-between gap-2">
+                  <div className="p-2 sm:p-2.5 bg-surface-elevated border border-border flex items-center justify-between gap-2 min-w-0">
                     <span className="font-mono text-xs text-ink break-all">
                       {record.outputCommitment}
                     </span>
@@ -221,12 +221,12 @@ export default function EvidenceDetailPage() {
 
           {/* Software Environment Identity */}
           {(record.softwareIdentity || record.softwareVersion) && (
-            <Card className="p-6">
-              <h3 className="text-base font-semibold text-ink mb-4 pb-2 border-b border-border flex items-center gap-2">
-                <Fingerprint className="w-4 h-4 text-primary" />
+            <Card className="p-4 sm:p-6">
+              <h3 className="text-base font-semibold text-ink mb-3 sm:mb-4 pb-2 border-b border-border flex items-center gap-2">
+                <Fingerprint className="w-4 h-4 text-primary flex-shrink-0" />
                 Software & Toolchain Attestation
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs">
                 <div>
                   <span className="font-medium text-ink-muted uppercase tracking-wide">
                     Software Identity Digest
@@ -249,10 +249,10 @@ export default function EvidenceDetailPage() {
 
           {/* Raw CooL Evidence Receipt (JSON) */}
           {record.evidenceJson && (
-            <Card className="p-6">
-              <div className="flex items-center justify-between mb-4 pb-2 border-b border-border">
+            <Card className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4 pb-2 border-b border-border gap-2">
                 <h3 className="text-base font-semibold text-ink flex items-center gap-2">
-                  <Code2 className="w-4 h-4 text-primary" />
+                  <Code2 className="w-4 h-4 text-primary flex-shrink-0" />
                   Raw CooL Cryptographic Receipt (JSON)
                 </h3>
                 <CopyButton
@@ -273,10 +273,10 @@ export default function EvidenceDetailPage() {
                   }
                 />
               </div>
-              <p className="text-xs text-ink-muted mb-3">
+              <p className="text-xs text-ink-muted mb-2 sm:mb-3">
                 This JSON contains the complete cryptographic envelope, including ML-DSA-65 / Ed25519 signature signatures, Intel TDX simulated enclave measurement, Merkel transparency audit path, and event commitments.
               </p>
-              <pre className="p-4 bg-surface-elevated border border-border text-xs font-mono text-ink overflow-x-auto max-h-96 leading-relaxed">
+              <pre className="p-2 sm:p-4 bg-surface-elevated border border-border text-xs font-mono text-ink overflow-x-auto max-h-64 sm:max-h-96 leading-relaxed">
                 {typeof record.evidenceJson === "string"
                   ? (() => {
                       try {
@@ -296,18 +296,18 @@ export default function EvidenceDetailPage() {
         </div>
 
         {/* Verification Sidebar */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Verification Verdicts */}
-          <Card className="p-6">
-            <h3 className="text-base font-semibold text-ink mb-4 pb-2 border-b border-border flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-success" />
+          <Card className="p-4 sm:p-6">
+            <h3 className="text-base font-semibold text-ink mb-3 sm:mb-4 pb-2 border-b border-border flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-success flex-shrink-0" />
               CooL Verification Checks
             </h3>
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {verifications.map((v, i) => (
                 <div
                   key={i}
-                  className="flex items-center justify-between p-2.5 bg-surface-elevated border border-border text-xs"
+                  className="flex items-center justify-between p-2 sm:p-2.5 bg-surface-elevated border border-border text-xs gap-2"
                 >
                   <span className="text-ink font-medium">{v.label}</span>
                   <VerificationIcon status={v.status} />
@@ -318,18 +318,18 @@ export default function EvidenceDetailPage() {
 
           {/* Linked Experiment */}
           {experiment && (
-            <Card className="p-6">
-              <h3 className="text-base font-semibold text-ink mb-3 pb-2 border-b border-border flex items-center gap-2">
-                <FlaskConical className="w-4 h-4 text-primary" />
+            <Card className="p-4 sm:p-6">
+              <h3 className="text-base font-semibold text-ink mb-2 sm:mb-3 pb-2 border-b border-border flex items-center gap-2">
+                <FlaskConical className="w-4 h-4 text-primary flex-shrink-0" />
                 Associated Experiment
               </h3>
-              <p className="text-xs font-mono text-ink-muted">{experiment.id}</p>
-              <p className="text-sm font-semibold text-ink mt-1">{experiment.title}</p>
-              <p className="text-xs text-ink-muted mt-1">{experiment.researcher}</p>
+              <p className="text-xs font-mono text-ink-muted truncate">{experiment.id}</p>
+              <p className="text-sm font-semibold text-ink mt-1 line-clamp-2">{experiment.title}</p>
+              <p className="text-xs text-ink-muted mt-1 truncate">{experiment.researcher}</p>
 
               <Link
                 href={`/experiments/${experiment.id}`}
-                className="mt-4 w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-semibold bg-surface hover:bg-surface-elevated border border-border text-ink transition-colors"
+                className="mt-3 sm:mt-4 w-full inline-flex items-center justify-center gap-1.5 py-2 px-2 sm:px-3 text-xs font-semibold bg-surface hover:bg-surface-elevated border border-border text-ink transition-colors"
               >
                 View Experiment Details
               </Link>

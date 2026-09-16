@@ -496,6 +496,33 @@ export default function ProvenancePage() {
     setIsDragging(false);
   };
 
+  // Touch support for mobile pan
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (
+      e.target === svgRef.current ||
+      (e.target as SVGElement).tagName === "svg" ||
+      (e.target as SVGElement).tagName === "rect"
+    ) {
+      if (e.touches.length === 1) {
+        setIsDragging(true);
+        setDragStart({ x: e.touches[0].clientX - pan.x, y: e.touches[0].clientY - pan.y });
+      }
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (isDragging && e.touches.length === 1) {
+      setPan({
+        x: e.touches[0].clientX - dragStart.x,
+        y: e.touches[0].clientY - dragStart.y,
+      });
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+
   const toggleTypeFilter = (type: ProvenanceNodeType) => {
     setActiveTypeFilters((prev) => {
       const next = new Set(prev);
@@ -632,11 +659,14 @@ export default function ProvenancePage() {
         </div>
 
         {/* Experiment Selector */}
-        <div className="flex items-center gap-3 self-start md:self-auto">
-          <label className="text-xs font-medium text-ink-muted uppercase tracking-wide">
+        <div className="flex w-full items-center gap-3 sm:w-auto sm:self-start md:self-auto">
+          <label className="shrink-0 text-xs font-medium text-ink-muted uppercase tracking-wide">
             Experiment:
           </label>
-          <div className="w-72">
+          {/* Fixed `w-72` below `sm` would set a ~393px min-content floor for the
+              page (label + gap + 288px), zooming out every phone viewport. From
+              `sm` up it is byte-for-byte the previous fixed width. */}
+          <div className="min-w-0 flex-1 sm:w-72 sm:flex-none">
             <Select
               value={selectedExperimentId}
               onChange={(e) => handleExperimentChange(e.target.value)}
@@ -696,7 +726,7 @@ export default function ProvenancePage() {
           </div>
 
           {/* Search Box */}
-          <div className="relative w-64">
+          <div className="relative w-full sm:w-64">
             <Search className="w-3.5 h-3.5 text-ink-muted absolute left-2.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
@@ -790,8 +820,8 @@ export default function ProvenancePage() {
 
           {/* SVG Canvas Area */}
           <div
-            className={`bg-surface overflow-hidden select-none relative ${
-              isGraphExpanded ? "h-full flex-1 min-h-0" : "h-[1040px]"
+            className={`bg-surface overflow-hidden select-none relative h-[400px] sm:h-[500px] md:h-[650px] lg:h-[1040px] ${
+              isGraphExpanded ? "h-full flex-1 min-h-0" : ""
             }`}
             style={{
               background:
@@ -808,6 +838,9 @@ export default function ProvenancePage() {
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
               onClick={() => setSelectedNode(null)}
               style={{ cursor: isDragging ? "grabbing" : "grab" }}
             >
@@ -934,9 +967,9 @@ export default function ProvenancePage() {
         </Card>
 
         {/* Node Inspection Details Panel */}
-        <Card className="p-6 flex flex-col justify-between">
+        <Card className="p-4 sm:p-6 flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between pb-4 border-b border-border mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-3 sm:pb-4 border-b border-border mb-3 sm:mb-4 gap-2">
               <h3 className="text-base font-semibold text-ink">
                 Node Inspector
               </h3>
@@ -963,12 +996,12 @@ export default function ProvenancePage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.2 }}
-                  className="space-y-4"
+                  className="space-y-3 sm:space-y-4"
                 >
                   {/* Node Title & Identity */}
-                  <div className="flex items-start gap-3 bg-surface-elevated p-3 border border-border">
+                  <div className="flex items-start gap-2 sm:gap-3 bg-surface-elevated p-2 sm:p-3 border border-border">
                     <div
-                      className="w-10 h-10 flex items-center justify-center shrink-0 border"
+                      className="w-9 sm:w-10 h-9 sm:h-10 flex items-center justify-center shrink-0 border"
                       style={{
                         backgroundColor:
                           nodeTypeColors[selectedNode.type]?.fill,
@@ -986,7 +1019,7 @@ export default function ProvenancePage() {
                       <p className="text-sm font-semibold text-ink truncate mt-0.5">
                         {selectedNode.label}
                       </p>
-                      <p className="text-xs font-mono text-ink-muted mt-0.5">
+                      <p className="text-xs font-mono text-ink-muted mt-0.5 break-all">
                         ID: {selectedNode.id}
                       </p>
                     </div>
@@ -1012,7 +1045,7 @@ export default function ProvenancePage() {
                         ([key, val]) => (
                           <div
                             key={key}
-                            className="p-2 flex items-start justify-between gap-2"
+                            className="p-2 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-2"
                           >
                             <span className="text-ink-muted capitalize font-medium">
                               {key.replace(/([A-Z])/g, " $1")}
@@ -1031,7 +1064,7 @@ export default function ProvenancePage() {
                     <span className="text-[11px] font-medium text-ink-muted uppercase tracking-wide mb-2 block">
                       Lineage Connections
                     </span>
-                    <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                    <div className="space-y-1 sm:space-y-1.5 max-h-40 overflow-y-auto">
                       {/* Inputs (Upstream) */}
                       {graphData?.edges
                         .filter((e) => e.to === selectedNode.id)
@@ -1041,18 +1074,18 @@ export default function ProvenancePage() {
                             <button
                               key={`up-${i}`}
                               onClick={() => src && setSelectedNode(src)}
-                              className="w-full text-left p-2 bg-surface hover:bg-surface-elevated border border-border text-xs flex items-center justify-between group transition-colors"
+                              className="w-full text-left p-2 bg-surface hover:bg-surface-elevated border border-border text-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 group transition-colors"
                             >
-                              <div className="flex items-center gap-1.5">
-                                <ArrowLeft className="w-3 h-3 text-ink-muted" />
-                                <span className="text-ink-muted font-medium">
+                              <div className="flex items-center gap-1">
+                                <ArrowLeft className="w-3 h-3 text-ink-muted flex-shrink-0" />
+                                <span className="text-ink-muted font-medium truncate">
                                   {edge.label}:
                                 </span>
-                                <span className="text-ink font-semibold">
+                                <span className="text-ink font-semibold truncate">
                                   {src?.label || edge.from}
                                 </span>
                               </div>
-                              <span className="text-[10px] text-ink-faint group-hover:text-primary">
+                              <span className="text-[10px] text-ink-faint group-hover:text-primary hidden sm:inline">
                                 Inspect
                               </span>
                             </button>
@@ -1068,18 +1101,18 @@ export default function ProvenancePage() {
                             <button
                               key={`down-${i}`}
                               onClick={() => tgt && setSelectedNode(tgt)}
-                              className="w-full text-left p-2 bg-surface hover:bg-surface-elevated border border-border text-xs flex items-center justify-between group transition-colors"
+                              className="w-full text-left p-2 bg-surface hover:bg-surface-elevated border border-border text-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 group transition-colors"
                             >
-                              <div className="flex items-center gap-1.5">
-                                <ArrowRight className="w-3 h-3 text-ink-muted" />
-                                <span className="text-ink-muted font-medium">
+                              <div className="flex items-center gap-1">
+                                <ArrowRight className="w-3 h-3 text-ink-muted flex-shrink-0" />
+                                <span className="text-ink-muted font-medium truncate">
                                   {edge.label}:
                                 </span>
-                                <span className="text-ink font-semibold">
+                                <span className="text-ink font-semibold truncate">
                                   {tgt?.label || edge.to}
                                 </span>
                               </div>
-                              <span className="text-[10px] text-ink-faint group-hover:text-primary">
+                              <span className="text-[10px] text-ink-faint group-hover:text-primary hidden sm:inline">
                                 Inspect
                               </span>
                             </button>
@@ -1089,34 +1122,37 @@ export default function ProvenancePage() {
                   </div>
 
                   {/* Actions & Deep Links */}
-                  <div className="pt-3 border-t border-border space-y-2">
+                  <div className="pt-2 sm:pt-3 border-t border-border space-y-2">
                     {selectedNode.recordId && (
                       <Link
                         href={`/evidence/${selectedNode.recordId}`}
-                        className="w-full inline-flex items-center justify-center gap-2 py-2 px-3 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 transition-colors"
+                        className="w-full inline-flex items-center justify-center gap-2 py-2 px-2 sm:px-3 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 transition-colors"
                       >
-                        <ShieldCheck className="w-3.5 h-3.5" />
-                        View Evidence Record ({selectedNode.recordId})
+                        <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span className="hidden sm:inline">View Evidence Record ({selectedNode.recordId})</span>
+                        <span className="sm:hidden">View Evidence</span>
                       </Link>
                     )}
 
                     {selectedNode.type === "experiment" && (
                       <Link
                         href={`/experiments/${selectedNode.label}`}
-                        className="w-full inline-flex items-center justify-center gap-2 py-2 px-3 text-xs font-semibold text-ink bg-surface-elevated hover:bg-surface border border-border transition-colors"
+                        className="w-full inline-flex items-center justify-center gap-2 py-2 px-2 sm:px-3 text-xs font-semibold text-ink bg-surface-elevated hover:bg-surface border border-border transition-colors"
                       >
-                        <FlaskConical className="w-3.5 h-3.5" />
-                        Open Experiment Details
+                        <FlaskConical className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span className="hidden sm:inline">Open Experiment Details</span>
+                        <span className="sm:hidden">View Experiment</span>
                       </Link>
                     )}
 
                     {selectedNode.type === "submission" && (
                       <Link
                         href="/submissions"
-                        className="w-full inline-flex items-center justify-center gap-2 py-2 px-3 text-xs font-semibold text-ink bg-surface-elevated hover:bg-surface border border-border transition-colors"
+                        className="w-full inline-flex items-center justify-center gap-2 py-2 px-2 sm:px-3 text-xs font-semibold text-ink bg-surface-elevated hover:bg-surface border border-border transition-colors"
                       >
-                        <Layers className="w-3.5 h-3.5" />
-                        Open Research Submissions
+                        <Layers className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span className="hidden sm:inline">Open Research Submissions</span>
+                        <span className="sm:hidden">View Submissions</span>
                       </Link>
                     )}
                   </div>
@@ -1127,9 +1163,9 @@ export default function ProvenancePage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="flex flex-col items-center justify-center py-16 text-center"
+                  className="flex flex-col items-center justify-center py-12 sm:py-16 text-center"
                 >
-                  <GitBranch className="w-12 h-12 text-ink-muted mb-3 opacity-60" />
+                  <GitBranch className="w-10 sm:w-12 h-10 sm:h-12 text-ink-muted mb-2 sm:mb-3 opacity-60" />
                   <p className="text-sm font-medium text-ink">
                     No Node Selected
                   </p>
@@ -1145,33 +1181,33 @@ export default function ProvenancePage() {
       </div>
 
       {/* Graph Statistics Banner */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-4">
-          <p className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-1">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+        <Card className="p-3 sm:p-4">
+          <p className="text-[10px] sm:text-xs font-medium text-ink-muted uppercase tracking-wide mb-1">
             Total Pipeline Nodes
           </p>
-          <p className="text-2xl font-semibold text-ink">{allNodes.length}</p>
+          <p className="text-xl sm:text-2xl font-semibold text-ink">{allNodes.length}</p>
         </Card>
-        <Card className="p-4">
-          <p className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-1">
+        <Card className="p-3 sm:p-4">
+          <p className="text-[10px] sm:text-xs font-medium text-ink-muted uppercase tracking-wide mb-1">
             Lineage Connections
           </p>
-          <p className="text-2xl font-semibold text-ink">
+          <p className="text-xl sm:text-2xl font-semibold text-ink">
             {graphData?.edges.length || 0}
           </p>
         </Card>
-        <Card className="p-4">
-          <p className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-1">
+        <Card className="p-3 sm:p-4">
+          <p className="text-[10px] sm:text-xs font-medium text-ink-muted uppercase tracking-wide mb-1">
             Verified Artifacts
           </p>
-          <p className="text-2xl font-semibold text-success">{verifiedCount}</p>
+          <p className="text-xl sm:text-2xl font-semibold text-success">{verifiedCount}</p>
         </Card>
-        <Card className="p-4">
-          <p className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-1">
+        <Card className="p-3 sm:p-4">
+          <p className="text-[10px] sm:text-xs font-medium text-ink-muted uppercase tracking-wide mb-1">
             Integrity Issues
           </p>
           <p
-            className={`text-2xl font-semibold ${
+            className={`text-xl sm:text-2xl font-semibold ${
               issuesCount > 0 ? "text-error" : "text-ink-muted"
             }`}
           >

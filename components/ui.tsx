@@ -125,15 +125,17 @@ export function PageHeader({ title, subtitle, actions, badge }: PageHeaderProps)
       transition={{ duration: 0.3 }}
       className="mb-8"
     >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-2">
             <h1 className="text-2xl font-semibold text-ink">{title}</h1>
             {badge}
           </div>
           {subtitle && <p className="text-sm text-ink-muted leading-relaxed max-w-3xl">{subtitle}</p>}
         </div>
-        {actions && <div className="flex items-center gap-3 ml-6">{actions}</div>}
+        {actions && (
+          <div className="flex flex-wrap items-center gap-3 sm:ml-6">{actions}</div>
+        )}
       </div>
     </motion.div>
   );
@@ -152,8 +154,8 @@ export function Section({ title, subtitle, children, className, action }: Sectio
   return (
     <section className={cn("mb-8", className)}>
       {(title || action) && (
-        <div className="flex items-center justify-between mb-4">
-          <div>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div className="min-w-0">
             {title && <h2 className="text-base font-semibold text-ink">{title}</h2>}
             {subtitle && <p className="text-sm text-ink-muted mt-1">{subtitle}</p>}
           </div>
@@ -222,10 +224,14 @@ export function Button({
       "bg-error text-white border border-error hover:opacity-90",
   };
 
+  /*
+    Below `sm` the vertical padding is raised so controls clear the ~44px
+    minimum touch target; from `sm` up the boxes are exactly the original sizes.
+  */
   const sizes = {
     xs: "px-2 py-1 text-xs",
-    sm: "px-3 py-1.5 text-xs",
-    md: "px-4 py-2 text-sm",
+    sm: "px-3 py-2.5 sm:py-1.5 text-xs",
+    md: "px-4 py-3 sm:py-2 text-sm",
     lg: "px-6 py-3 text-base",
   };
 
@@ -286,7 +292,9 @@ export function Input({ label, error, className, ...props }: InputProps) {
       )}
       <input
         className={cn(
-          "w-full px-3 py-2 border bg-surface text-sm text-ink placeholder:text-ink-faint",
+          // 16px type + taller box on small screens: comfortable to tap and it
+          // stops mobile browsers from zooming in on focus.
+          "w-full min-w-0 px-3 py-2.5 sm:py-2 border bg-surface text-base sm:text-sm text-ink placeholder:text-ink-faint",
           "focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-primary",
           "transition-colors duration-200",
           error ? "border-error" : "border-border hover:border-border-strong",
@@ -321,7 +329,7 @@ export function Select({ label, options, className, ...props }: SelectProps) {
       )}
       <select
         className={cn(
-          "w-full px-3 py-2 border border-border bg-surface text-sm text-ink",
+          "w-full min-w-0 px-3 py-2.5 sm:py-2 border border-border bg-surface text-base sm:text-sm text-ink",
           "focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-primary",
           "hover:border-border-strong transition-colors duration-200",
           className
@@ -351,7 +359,7 @@ export function Textarea({ label, className, ...props }: TextareaProps) {
       )}
       <textarea
         className={cn(
-          "w-full px-3 py-2 border border-border bg-surface text-sm text-ink placeholder:text-ink-faint",
+          "w-full min-w-0 px-3 py-2.5 sm:py-2 border border-border bg-surface text-base sm:text-sm text-ink placeholder:text-ink-faint",
           "focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-primary",
           "hover:border-border-strong transition-colors duration-200",
           className
@@ -426,7 +434,7 @@ export function EmptyState({ title, description, action, icon }: EmptyStateProps
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="text-center py-16"
+      className="text-center py-12 sm:py-16"
     >
       {icon && <div className="flex justify-center mb-4 text-ink-faint">{icon}</div>}
       <h3 className="text-base font-semibold text-ink mb-2">{title}</h3>
@@ -451,7 +459,13 @@ interface TableProps {
 
 export function Table({ children, className }: TableProps) {
   return (
-    <div className="overflow-x-auto">
+    /*
+      Wide data tables scroll inside this box — that is the shared strategy for
+      content which genuinely cannot fit a narrow viewport. The page itself never
+      scrolls sideways, and columns keep their readable width instead of being
+      squeezed into unreadable type.
+    */
+    <div className="w-full max-w-full overflow-x-auto overscroll-x-contain">
       <table className={cn("w-full text-sm", className)}>{children}</table>
     </div>
   );
@@ -472,12 +486,12 @@ export function MetricCard({ label, value, subtitle, trend }: MetricCardProps) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="bg-surface border border-border p-6 hover:border-border-strong hover:shadow-sm transition-colors"
+      className="bg-surface border border-border p-4 sm:p-6 hover:border-border-strong hover:shadow-sm transition-colors"
     >
       <div className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-2">
         {label}
       </div>
-      <div className="text-3xl font-semibold text-ink mb-1 tabular-nums-sm">{value}</div>
+      <div className="text-2xl sm:text-3xl font-semibold text-ink mb-1 tabular-nums-sm">{value}</div>
       {subtitle && (
         <div className="text-xs text-ink-muted flex items-center gap-1">
           {trend && (
@@ -508,12 +522,14 @@ interface TabProps {
 export function Tabs({ tabs, activeTab, onChange }: TabProps) {
   return (
     <div className="border-b border-border">
-      <div className="flex gap-6">
+      {/* Scrolls horizontally on narrow screens; from `sm` up the overflow is
+          visible again so the desktop tab bar renders exactly as before. */}
+      <div className="flex gap-4 overflow-x-auto overscroll-x-contain sm:gap-6 sm:overflow-x-visible">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => onChange(tab.id)}
-            className="relative pb-3 text-sm font-medium transition-colors"
+            className="relative shrink-0 whitespace-nowrap sm:shrink sm:whitespace-normal pb-3 text-sm font-medium transition-colors"
             aria-current={activeTab === tab.id ? "page" : undefined}
           >
             <span
@@ -571,7 +587,7 @@ export function Modal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-3 sm:items-center sm:p-4">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -588,15 +604,17 @@ export function Modal({
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ duration: 0.2, ease: "easeOut" }}
           className={cn(
-            "relative w-full bg-surface border border-border shadow-2xl z-10 max-h-[90vh] flex flex-col overflow-hidden",
+            // `dvh` keeps the dialog — and its close button — inside the visible
+            // area on mobile browsers whose URL bar overlaps the large viewport.
+            "relative w-full bg-surface border border-border shadow-2xl z-10 max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] flex flex-col overflow-hidden",
             widthClasses[maxWidth]
           )}
           role="dialog"
           aria-modal="true"
         >
           {/* Header */}
-          <div className="flex items-start justify-between p-6 border-b border-border bg-surface-elevated">
-            <div>
+          <div className="flex items-start justify-between gap-3 p-4 sm:p-6 border-b border-border bg-surface-elevated">
+            <div className="min-w-0">
               <h2 className="text-lg font-semibold text-ink">{title}</h2>
               {description && (
                 <p className="text-sm text-ink-muted mt-1">{description}</p>
@@ -604,7 +622,7 @@ export function Modal({
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 text-ink-muted hover:text-ink hover:bg-surface transition-colors cursor-pointer"
+              className="flex h-11 w-11 sm:h-8 sm:w-8 shrink-0 items-center justify-center text-ink-muted hover:text-ink hover:bg-surface transition-colors cursor-pointer"
               aria-label="Close modal"
             >
               <X className="w-5 h-5" />
@@ -612,7 +630,7 @@ export function Modal({
           </div>
 
           {/* Body */}
-          <div className="p-6 overflow-y-auto flex-1">{children}</div>
+          <div className="p-4 sm:p-6 overflow-y-auto flex-1">{children}</div>
         </motion.div>
       </div>
     </AnimatePresence>

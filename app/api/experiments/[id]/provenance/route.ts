@@ -7,19 +7,11 @@ export async function GET(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await getSessionUser(request);
-    if (!user) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-    }
-
     const { id } = await context.params;
 
     const experiment = await prisma.experiment.findFirst({
       where: {
-        AND: [
-          { OR: [{ id }, { publicId: id }] },
-          { userId: user.id },
-        ],
+        OR: [{ id }, { publicId: id }],
       },
       include: {
         institution: true,

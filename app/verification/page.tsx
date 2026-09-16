@@ -114,8 +114,8 @@ function CooLVerifierPanel({ result }: { result: IntegrityCheck }) {
   };
 
   return (
-    <Card className="p-6">
-      <div className="flex items-start justify-between gap-4 mb-5">
+    <Card className="p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-5">
         <div>
           <h4 className="text-sm font-semibold text-ink">CooL Cryptographic Verification</h4>
           <p className="text-xs text-ink-muted mt-1">
@@ -123,7 +123,7 @@ function CooLVerifierPanel({ result }: { result: IntegrityCheck }) {
           </p>
         </div>
         <span
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold border ${
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold border flex-shrink-0 ${
             result.verified
               ? "text-success border-success/30 bg-success/10"
               : "text-error border-error/30 bg-error/10"
@@ -134,20 +134,20 @@ function CooLVerifierPanel({ result }: { result: IntegrityCheck }) {
         </span>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
-        <div className="p-3 bg-surface-elevated border border-border">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mb-4 sm:mb-5">
+        <div className="p-2 sm:p-3 bg-surface-elevated border border-border">
           <p className="text-[10px] uppercase tracking-wider text-ink-faint mb-1">Evidence event</p>
           <p className="text-xs font-medium text-ink truncate">{subject?.subject || "CooL evidence receipt"}</p>
         </div>
-        <div className="p-3 bg-surface-elevated border border-border">
+        <div className="p-2 sm:p-3 bg-surface-elevated border border-border">
           <p className="text-[10px] uppercase tracking-wider text-ink-faint mb-1">Record ID</p>
           <p className="text-xs font-mono text-ink truncate">{subject?.record_id || "Not available"}</p>
         </div>
-        <div className="p-3 bg-surface-elevated border border-border">
+        <div className="p-2 sm:p-3 bg-surface-elevated border border-border">
           <p className="text-[10px] uppercase tracking-wider text-ink-faint mb-1">Signer</p>
           <p className="text-xs font-mono text-ink truncate">{subject?.key_id || "Not available"}</p>
         </div>
-        <div className="p-3 bg-surface-elevated border border-border">
+        <div className="p-2 sm:p-3 bg-surface-elevated border border-border">
           <p className="text-[10px] uppercase tracking-wider text-ink-faint mb-1">Runtime</p>
           <p className="text-xs text-ink truncate">{subject?.tee || "Not available"}</p>
         </div>
@@ -159,9 +159,9 @@ function CooLVerifierPanel({ result }: { result: IntegrityCheck }) {
           const verified = status === "Verified" || status === "Simulated";
           const failed = status === "Failed";
           return (
-            <div key={check.label} className="flex items-center justify-between gap-3 p-3 border border-border bg-surface">
+            <div key={check.label} className="flex items-center justify-between gap-3 p-2 sm:p-3 border border-border bg-surface">
               <span className="text-xs text-ink">{check.label}</span>
-              <span className={`text-[11px] font-semibold ${verified ? "text-success" : failed ? "text-error" : "text-ink-muted"}`}>
+              <span className={`text-[10px] sm:text-[11px] font-semibold whitespace-nowrap ${verified ? "text-success" : failed ? "text-error" : "text-ink-muted"}`}>
                 {status}
               </span>
             </div>
@@ -323,24 +323,24 @@ export default function VerificationPage() {
               transition={{ duration: 0.2 }}
             >
               {/* Verification Input */}
-              <div className="grid grid-cols-2 gap-8">
-                <Card className="p-8">
-                  <h2 className="text-base font-semibold text-ink mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+                <Card className="p-4 sm:p-8">
+                  <h2 className="text-base font-semibold text-ink mb-4 sm:mb-6">
                     Submit Evidence for Verification
                   </h2>
 
                   {/* File Upload */}
-                  <div className="mb-6">
+                  <div className="mb-4 sm:mb-6">
                     <label className="block text-sm font-medium text-ink mb-3">
                       Upload Evidence Receipt
                     </label>
-                    <label className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-border hover:border-border-strong transition-colors cursor-pointer bg-surface">
-                      <Upload className="w-8 h-8 text-ink-muted mb-3" />
-                      <span className="text-sm text-ink mb-1 font-medium">
+                    <label className="flex flex-col items-center justify-center py-8 sm:py-12 border-2 border-dashed border-border hover:border-border-strong transition-colors cursor-pointer bg-surface">
+                      <Upload className="w-6 sm:w-8 h-6 sm:h-8 text-ink-muted mb-2 sm:mb-3" />
+                      <span className="text-xs sm:text-sm text-ink mb-1 font-medium text-center px-2">
                         {file ? file.name : "Choose a file"}
                       </span>
                       <span className="text-xs text-ink-faint">
-                        JSON, PDF, or text evidence receipts
+                        JSON, PDF, or text
                       </span>
                       <input
                         type="file"
@@ -352,7 +352,7 @@ export default function VerificationPage() {
                   </div>
 
                   {/* Divider */}
-                  <div className="flex items-center gap-4 my-6">
+                  <div className="flex items-center gap-4 my-4 sm:my-6">
                     <div className="flex-1 border-t border-border" />
                     <span className="text-xs text-ink-faint uppercase tracking-wide">or</span>
                     <div className="flex-1 border-t border-border" />
@@ -362,7 +362,7 @@ export default function VerificationPage() {
                   <Textarea
                     label="Paste Evidence JSON"
                     placeholder="Paste the evidence receipt JSON here..."
-                    rows={8}
+                    rows={6}
                     value={receiptText}
                     onChange={(e) => {
                       setReceiptText(e.target.value);
@@ -376,7 +376,7 @@ export default function VerificationPage() {
                     variant="primary"
                     onClick={handleVerify}
                     disabled={!canVerify}
-                    className="w-full mt-6 py-3"
+                    className="w-full mt-4 sm:mt-6 py-3"
                     size="lg"
                   >
                     <Shield className="w-4 h-4 mr-2" />
@@ -385,30 +385,30 @@ export default function VerificationPage() {
                 </Card>
 
                 {/* Awaiting Panel */}
-                <div className="flex flex-col gap-6">
-                  <Card className="p-8 flex flex-1 flex-col items-center justify-center bg-surface border border-border">
-                    <Shield className="w-16 h-16 text-ink-muted mb-6" />
+                <div className="flex flex-col gap-4 md:gap-6">
+                  <Card className="p-4 sm:p-8 flex flex-1 flex-col items-center justify-center bg-surface border border-border">
+                    <Shield className="w-10 sm:w-16 h-10 sm:h-16 text-ink-muted mb-3 sm:mb-6" />
                     <h3 className="text-base font-semibold text-ink mb-2">
                       Awaiting Evidence
                     </h3>
-                    <p className="text-sm text-ink-muted text-center max-w-sm">
+                    <p className="text-sm text-ink-muted text-center max-w-sm px-2">
                       Submit an evidence receipt to begin independent verification
                       of research record integrity.
                     </p>
                   </Card>
 
                   {/* CooL Cryptographic Engine Panel */}
-                  <Card className="p-6 border border-primary/20 bg-primary/5">
-                    <div className="flex items-start gap-3">
+                  <Card className="p-4 sm:p-6 border border-primary/20 bg-primary/5">
+                    <div className="flex items-start gap-2 sm:gap-3">
                       <Shield className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-ink mb-1">
                           Live CooL Verification Engine
                         </p>
-                        <p className="text-xs text-ink-muted mb-4">
+                        <p className="text-xs text-ink-muted mb-3 sm:mb-4">
                           Directly validates ML-DSA-65 post-quantum signatures, Intel TDX enclave measurements, Merkle inclusion paths, and multihash event bindings.
                         </p>
-                        <div className="border-t border-border pt-3">
+                        <div className="border-t border-border pt-2 sm:pt-3">
                           <label className="text-xs font-semibold text-ink-muted uppercase tracking-wider block mb-2">
                             Auditor Test Mode
                           </label>
@@ -428,7 +428,7 @@ export default function VerificationPage() {
                                 type="button"
                                 onClick={() => setSimulate(option.value)}
                                 aria-pressed={simulate === option.value}
-                                className={`px-3 py-2 text-xs font-medium border transition-colors ${
+                                className={`px-2 sm:px-3 py-2 text-xs font-medium border transition-colors truncate ${
                                   simulate === option.value
                                     ? "border-primary bg-primary text-primary-ink"
                                     : "border-border bg-surface text-ink-muted hover:text-ink hover:border-border-strong"
@@ -440,7 +440,7 @@ export default function VerificationPage() {
                           </div>
                         </div>
 
-                        <div className="border-t border-border pt-3 mt-4">
+                        <div className="border-t border-border pt-2 sm:pt-3 mt-3 sm:mt-4">
                           <label className="text-xs font-semibold text-ink-muted uppercase tracking-wider block mb-2">
                             Tamper Demo
                           </label>
@@ -448,34 +448,34 @@ export default function VerificationPage() {
                             <button
                               type="button"
                               onClick={() => runTamperDemo("/api/dev/tamper/measurement", "Measurement tamper")}
-                              className="px-3 py-2 text-xs font-medium border border-border bg-surface text-ink-muted hover:text-ink hover:border-border-strong transition-colors"
+                              className="px-2 sm:px-3 py-2 text-xs font-medium border border-border bg-surface text-ink-muted hover:text-ink hover:border-border-strong transition-colors truncate"
                             >
                               Tamper Measurement
                             </button>
                             <button
                               type="button"
                               onClick={() => runTamperDemo("/api/dev/tamper/dataset", "Dataset tamper")}
-                              className="px-3 py-2 text-xs font-medium border border-border bg-surface text-ink-muted hover:text-ink hover:border-border-strong transition-colors"
+                              className="px-2 sm:px-3 py-2 text-xs font-medium border border-border bg-surface text-ink-muted hover:text-ink hover:border-border-strong transition-colors truncate"
                             >
                               Tamper Dataset
                             </button>
                             <button
                               type="button"
                               onClick={() => runTamperDemo("/api/dev/tamper/receipt", "Receipt tamper")}
-                              className="px-3 py-2 text-xs font-medium border border-border bg-surface text-ink-muted hover:text-ink hover:border-border-strong transition-colors"
+                              className="px-2 sm:px-3 py-2 text-xs font-medium border border-border bg-surface text-ink-muted hover:text-ink hover:border-border-strong transition-colors truncate"
                             >
                               Corrupt Receipt
                             </button>
                             <button
                               type="button"
                               onClick={() => runTamperDemo("/api/dev/restore", "Restore baseline")}
-                              className="px-3 py-2 text-xs font-medium border border-border bg-surface text-ink-muted hover:text-ink hover:border-border-strong transition-colors"
+                              className="px-2 sm:px-3 py-2 text-xs font-medium border border-border bg-surface text-ink-muted hover:text-ink hover:border-border-strong transition-colors truncate"
                             >
                               Restore Baseline
                             </button>
                           </div>
                           {demoStatus && (
-                            <p className="mt-3 text-xs text-ink-muted">{demoStatus}</p>
+                            <p className="mt-2 sm:mt-3 text-xs text-ink-muted">{demoStatus}</p>
                           )}
                         </div>
                       </div>
@@ -495,8 +495,8 @@ export default function VerificationPage() {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
-              <Card className="p-8">
-                <h2 className="text-lg font-semibold text-ink mb-8">
+              <Card className="p-4 sm:p-8">
+                <h2 className="text-lg font-semibold text-ink mb-6 sm:mb-8">
                   Verification in Progress
                 </h2>
 
@@ -507,7 +507,7 @@ export default function VerificationPage() {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.1 }}
-                      className="flex items-center gap-4 py-4 border-b border-border last:border-0"
+                      className="flex items-center gap-3 sm:gap-4 py-3 sm:py-4 border-b border-border last:border-0"
                     >
                       <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
                         {step.status === "running" && (
@@ -561,23 +561,23 @@ export default function VerificationPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="space-y-6"
+              className="space-y-4 sm:space-y-6"
             >
-              <Card className="p-8 border border-success/20 bg-success/5">
-                <div className="flex items-start gap-4">
+              <Card className="p-4 sm:p-8 border border-success/20 bg-success/5">
+                <div className="flex items-start gap-3 sm:gap-4">
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", delay: 0.3 }}
                   >
-                    <CheckCircle2 className="w-10 h-10 text-success flex-shrink-0" />
+                    <CheckCircle2 className="w-8 sm:w-10 h-8 sm:h-10 text-success flex-shrink-0" />
                   </motion.div>
-                  <div>
+                  <div className="min-w-0">
                     <motion.h2
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.4 }}
-                      className="text-xl font-semibold text-success mb-2"
+                      className="text-lg sm:text-xl font-semibold text-success mb-1 sm:mb-2"
                     >
                       Verification Passed
                     </motion.h2>
@@ -593,8 +593,8 @@ export default function VerificationPage() {
                 </div>
               </Card>
 
-              <Card className="p-8">
-                <h3 className="text-base font-semibold text-ink mb-6">
+              <Card className="p-4 sm:p-8">
+                <h3 className="text-base font-semibold text-ink mb-4 sm:mb-6">
                   Verification Details
                 </h3>
 
@@ -605,15 +605,15 @@ export default function VerificationPage() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.6 + index * 0.1 }}
-                      className="flex items-center justify-between py-4 border-b border-border last:border-0"
+                      className="flex items-center justify-between py-3 sm:py-4 border-b border-border last:border-0 gap-2"
                     >
                       <span className="text-sm text-ink">{check.label}</span>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-shrink-0">
                         <VerificationIcon
                           status={result[check.key] ? "verified" : "failed"}
                         />
                         <span
-                          className={`text-sm font-medium uppercase tracking-wide ${
+                          className={`text-xs sm:text-sm font-medium uppercase tracking-wide ${
                             result[check.key] ? "text-success" : "text-error"
                           }`}
                         >
@@ -624,18 +624,18 @@ export default function VerificationPage() {
                   ))}
                 </div>
 
-                <div className="mt-6 pt-6 border-t border-border text-xs text-ink-muted">
+                <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-border text-xs text-ink-muted">
                   Verification completed: {formatDateTimeFull(result.lastVerification)}
                 </div>
               </Card>
 
               <CooLVerifierPanel result={result} />
 
-              <div className="flex gap-3">
-                <Button variant="secondary" onClick={resetVerification}>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button variant="secondary" onClick={resetVerification} className="w-full sm:w-auto">
                   Verify Another Receipt
                 </Button>
-                <Button variant="primary" onClick={handleDownloadReport}>Download Verification Report</Button>
+                <Button variant="primary" onClick={handleDownloadReport} className="w-full sm:w-auto">Download Verification Report</Button>
               </div>
             </motion.div>
           )}
@@ -647,23 +647,23 @@ export default function VerificationPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="space-y-6"
+              className="space-y-4 sm:space-y-6"
             >
-              <Card className="p-8 border border-error/20 bg-error/5">
-                <div className="flex items-start gap-4">
+              <Card className="p-4 sm:p-8 border border-error/20 bg-error/5">
+                <div className="flex items-start gap-3 sm:gap-4">
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", delay: 0.3 }}
                   >
-                    <XCircle className="w-10 h-10 text-error flex-shrink-0" />
+                    <XCircle className="w-8 sm:w-10 h-8 sm:h-10 text-error flex-shrink-0" />
                   </motion.div>
-                  <div>
+                  <div className="min-w-0">
                     <motion.h2
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.4 }}
-                      className="text-xl font-semibold text-error mb-2"
+                      className="text-lg sm:text-xl font-semibold text-error mb-1 sm:mb-2"
                     >
                       Integrity Verification Failed
                     </motion.h2>
@@ -682,8 +682,8 @@ export default function VerificationPage() {
               </Card>
 
               {/* Per-check breakdown, so passing checks stay visible alongside failures */}
-              <Card className="p-8">
-                <h3 className="text-base font-semibold text-ink mb-6">
+              <Card className="p-4 sm:p-8">
+                <h3 className="text-base font-semibold text-ink mb-4 sm:mb-6">
                   Verification Details
                 </h3>
 
@@ -694,15 +694,15 @@ export default function VerificationPage() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.6 + index * 0.1 }}
-                      className="flex items-center justify-between py-4 border-b border-border last:border-0"
+                      className="flex items-center justify-between py-3 sm:py-4 border-b border-border last:border-0 gap-2"
                     >
                       <span className="text-sm text-ink">{check.label}</span>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-shrink-0">
                         <VerificationIcon
                           status={result[check.key] ? "verified" : "failed"}
                         />
                         <span
-                          className={`text-sm font-medium uppercase tracking-wide ${
+                          className={`text-xs sm:text-sm font-medium uppercase tracking-wide ${
                             result[check.key] ? "text-success" : "text-error"
                           }`}
                         >
@@ -713,20 +713,20 @@ export default function VerificationPage() {
                   ))}
                 </div>
 
-                <div className="mt-6 pt-6 border-t border-border text-xs text-ink-muted">
+                <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-border text-xs text-ink-muted">
                   Verification completed: {formatDateTimeFull(result.lastVerification)}
                 </div>
               </Card>
 
               {/* Reported issues */}
               {result.issues.length > 0 && (
-                <Card className="p-8">
-                  <h3 className="text-base font-semibold text-ink mb-4">
+                <Card className="p-4 sm:p-8">
+                  <h3 className="text-base font-semibold text-ink mb-3 sm:mb-4">
                     Reported Issues
                   </h3>
-                  <ul className="space-y-3">
+                  <ul className="space-y-2 sm:space-y-3">
                     {Array.from(new Set(result.issues.map(toSimpleIssue))).map((issue) => (
-                      <li key={issue} className="flex items-start gap-3">
+                      <li key={issue} className="flex items-start gap-2 sm:gap-3">
                         <AlertTriangle className="w-4 h-4 text-error flex-shrink-0 mt-0.5" />
                         <span className="text-sm text-ink">{issue}</span>
                       </li>
@@ -737,18 +737,18 @@ export default function VerificationPage() {
 
               {/* Commitment diff, only meaningful when the commitment check failed */}
               {!result.datasetCommitmentVerified && (
-                <Card className="p-8">
-                  <h3 className="text-base font-semibold text-ink mb-6">
+                <Card className="p-4 sm:p-8">
+                  <h3 className="text-base font-semibold text-ink mb-4 sm:mb-6">
                     Dataset Commitment Mismatch
                   </h3>
 
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     <div>
                       <span className="text-xs font-medium text-ink-faint uppercase tracking-wide mb-2 block">
                         Expected Commitment
                       </span>
-                      <div className="flex items-center gap-2">
-                        <code className="flex-1 text-xs font-mono text-ink bg-surface-elevated px-3 py-2 border border-border overflow-x-auto">
+                      <div className="flex items-center gap-2 gap-y-0">
+                        <code className="flex-1 text-xs font-mono text-ink bg-surface-elevated px-2 sm:px-3 py-2 border border-border overflow-x-auto break-all">
                           {EXPECTED_COMMITMENT}
                         </code>
                         <CopyButton text={EXPECTED_COMMITMENT} />
@@ -760,15 +760,15 @@ export default function VerificationPage() {
                         Observed Commitment
                       </span>
                       <div className="flex items-center gap-2">
-                        <code className="flex-1 text-xs font-mono text-error bg-error/10 px-3 py-2 border border-border overflow-x-auto">
+                        <code className="flex-1 text-xs font-mono text-error bg-error/10 px-2 sm:px-3 py-2 border border-border overflow-x-auto break-all">
                           {OBSERVED_COMMITMENT}
                         </code>
                         <CopyButton text={OBSERVED_COMMITMENT} />
                       </div>
                     </div>
 
-                    <div className="pt-4 border-t border-border">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="pt-3 sm:pt-4 border-t border-border">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
                         <div>
                           <span className="text-xs font-medium text-ink-faint uppercase tracking-wide">
                             Affected Record
@@ -786,7 +786,7 @@ export default function VerificationPage() {
                       </div>
                     </div>
 
-                    <div className="p-4 bg-surface border border-border mt-4">
+                    <div className="p-3 sm:p-4 bg-surface border border-border mt-3 sm:mt-4">
                       <p className="text-sm text-ink font-medium mb-1">Conclusion</p>
                       <p className="text-sm text-ink/80">
                         The current dataset differs from the dataset represented by the recorded evidence.
@@ -799,11 +799,11 @@ export default function VerificationPage() {
 
               <CooLVerifierPanel result={result} />
 
-              <div className="flex gap-3">
-                <Button variant="secondary" onClick={resetVerification}>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button variant="secondary" onClick={resetVerification} className="w-full sm:w-auto">
                   Verify Another Receipt
                 </Button>
-                <Button variant="primary" onClick={handleDownloadReport}>Download Verification Report</Button>
+                <Button variant="primary" onClick={handleDownloadReport} className="w-full sm:w-auto">Download Verification Report</Button>
               </div>
             </motion.div>
           )}

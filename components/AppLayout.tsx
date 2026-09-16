@@ -19,7 +19,6 @@ import {
   FileText,
   BarChart3,
   ChevronLeft,
-  ChevronRight,
   Bell,
   Sun,
   Moon,
@@ -28,6 +27,8 @@ import {
   Building2,
   Lock,
   ChevronDown,
+  Menu,
+  X,
 } from "lucide-react";
 
 const navigation = [
@@ -41,6 +42,9 @@ const navigation = [
   { name: "Reports", href: "/reports", icon: BarChart3 },
 ];
 
+// The persistent sidebar is desktop-only; below this width it becomes a drawer.
+const SIDEBAR_WIDTH = { collapsed: 64, expanded: 224 };
+
 function getInitials(name?: string): string {
   if (!name) return "US";
   const clean = name.replace(/^Dr\.\s*/i, "").trim();
@@ -51,6 +55,57 @@ function getInitials(name?: string): string {
   return clean.slice(0, 2).toUpperCase();
 }
 
+/**
+ * The primary navigation list. Rendered by the desktop sidebar (collapsible) and
+ * by the mobile drawer (always expanded), so the route list and the active-state
+ * treatment stay identical in both places.
+ */
+function NavigationItems({
+  pathname,
+  collapsed = false,
+  layoutId,
+  onNavigate,
+}: {
+  pathname: string;
+  collapsed?: boolean;
+  layoutId: string;
+  onNavigate?: () => void;
+}) {
+  return (
+    <>
+      {navigation.map((item, index) => {
+        const isActive = pathname === item.href;
+        return (
+          <Link key={item.name} href={item.href} className="relative block" onClick={onNavigate}>
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className={`flex items-center gap-3 px-4 py-2.5 min-h-11 md:min-h-0 text-sm font-medium transition-all ${
+                isActive
+                  ? "text-ink bg-surface-elevated"
+                  : "text-ink-muted hover:text-ink hover:bg-surface-elevated"
+              }`}
+            >
+              <item.icon className="w-4 h-4 flex-shrink-0" />
+              {!collapsed && (
+                <span className="whitespace-nowrap">{item.name}</span>
+              )}
+              {isActive && (
+                <motion.div
+                  layoutId={layoutId}
+                  className="absolute right-0 top-0 bottom-0 w-0.5 bg-primary"
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
+              )}
+            </motion.div>
+          </Link>
+        );
+      })}
+    </>
+  );
+}
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -59,6 +114,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
 
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -74,8 +130,41 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Dismiss the drawer with Escape, and stop the page behind it from scrolling.
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setMobileNavOpen(false);
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [mobileNavOpen]);
+
+  /*
+    The drawer is hidden by CSS at md and up, but its open state (and the body
+    scroll lock above) would otherwise survive a resize. This only reconciles
+    that state — the responsive layout itself is pure CSS.
+  */
+  useEffect(() => {
+    const desktopQuery = window.matchMedia("(min-width: 768px)");
+    function handleBreakpointChange(event: MediaQueryListEvent) {
+      if (event.matches) setMobileNavOpen(false);
+    }
+    desktopQuery.addEventListener("change", handleBreakpointChange);
+    return () => desktopQuery.removeEventListener("change", handleBreakpointChange);
+  }, []);
+
   const handleSignOut = async () => {
     setUserMenuOpen(false);
+    setMobileNavOpen(false);
     await logout();
     router.push("/login");
   };
@@ -86,22 +175,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen bg-background">
         <header className="h-14 bg-surface border-b border-border">
-          <div className="flex items-center justify-between h-full px-6 max-w-7xl mx-auto">
-            <Link href="/" className="flex items-center gap-3">
+          <div className="flex items-center justify-between h-full px-4 sm:px-6 max-w-7xl mx-auto">
+            <Link href="/" className="flex items-center gap-3 min-w-0">
               <Image
                 src="/resrec-logo.svg"
                 alt="ResRec"
                 width={160}
                 height={45}
-                className="w-40 h-auto shadow-sm"
+                className="w-32 h-auto shadow-sm sm:w-40"
               />
             </Link>
 
             <div className="flex items-center gap-4">
               <button
                 onClick={toggleTheme}
-                className="p-2 text-ink-muted hover:text-ink hover:bg-surface-elevated transition-colors cursor-pointer"
+                className="flex h-11 w-11 sm:h-8 sm:w-8 items-center justify-center text-ink-muted hover:text-ink hover:bg-surface-elevated transition-colors cursor-pointer"
                 title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+                aria-label={
+                  theme === "dark" ? "Switch to light theme" : "Switch to dark theme"
+                }
               >
                 {theme === "dark" ? (
                   <Sun className="w-4 h-4" />
@@ -119,14 +211,27 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const initials = getInitials(user?.name);
   const institutionDisplay = user?.institutionName || "Indian Institute of Technology Bombay";
+  const asideWidth = sidebarCollapsed ? SIDEBAR_WIDTH.collapsed : SIDEBAR_WIDTH.expanded;
 
   return (
     <div className="min-h-screen bg-background">
       {/* Top institutional header */}
       <header className="fixed top-0 left-0 right-0 h-14 bg-surface border-b border-border z-50">
-        <div className="flex items-center justify-between h-full px-6">
-          <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-3">
+        <div className="flex items-center justify-between h-full gap-2 px-3 sm:px-6">
+          <div className="flex items-center gap-3 min-w-0 sm:gap-8">
+            {/* Mobile navigation trigger — the sidebar itself is desktop-only */}
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen(true)}
+              className="-ml-1 flex h-11 w-11 shrink-0 items-center justify-center text-ink-muted hover:text-ink hover:bg-surface-elevated transition-colors cursor-pointer md:hidden"
+              aria-label="Open navigation menu"
+              aria-expanded={mobileNavOpen}
+              aria-controls="mobile-navigation"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+
+            <Link href="/" className="flex items-center gap-3 min-w-0">
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -137,13 +242,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   alt="ResRec"
                   width={160}
                   height={45}
-                  className="w-40 h-auto shadow-sm"
+                  className="w-28 h-auto shadow-sm sm:w-40"
                 />
               </motion.div>
             </Link>
           </div>
 
-          <div className="flex items-center gap-4 sm:gap-6">
+          <div className="flex items-center gap-1 sm:gap-4 lg:gap-6">
             <span className="text-sm text-ink-muted hidden lg:block font-medium">
               {institutionDisplay}
             </span>
@@ -152,7 +257,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="relative">
               <button
                 onClick={() => setNotificationsOpen(!notificationsOpen)}
-                className="relative p-2 text-ink-muted hover:text-ink hover:bg-surface-elevated transition-colors cursor-pointer"
+                className="relative flex h-11 w-11 sm:h-9 sm:w-9 items-center justify-center text-ink-muted hover:text-ink hover:bg-surface-elevated transition-colors cursor-pointer"
                 aria-label="Notifications"
                 aria-expanded={notificationsOpen}
               >
@@ -166,7 +271,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="absolute right-0 mt-2 w-80 bg-surface border border-border shadow-lg z-50"
+                    className="fixed inset-x-3 top-16 z-50 bg-surface border border-border shadow-lg sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80"
                   >
                     <div className="p-4 border-b border-border flex items-center justify-between">
                       <h3 className="text-sm font-semibold text-ink">
@@ -199,10 +304,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </AnimatePresence>
             </div>
 
-            {/* Theme Switcher */}
+            {/* Theme Switcher — below sm it lives in the navigation drawer instead,
+                where the header would otherwise be overcrowded. */}
             <button
               onClick={toggleTheme}
-              className="p-2 text-ink-muted hover:text-ink hover:bg-surface-elevated transition-colors cursor-pointer"
+              className="hidden sm:flex h-8 w-8 items-center justify-center text-ink-muted hover:text-ink hover:bg-surface-elevated transition-colors cursor-pointer"
               title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
               aria-label={
                 theme === "dark" ? "Switch to light theme" : "Switch to dark theme"
@@ -221,7 +327,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <button
                   type="button"
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-3 pl-4 border-l border-border hover:opacity-90 transition-opacity cursor-pointer text-left"
+                  className="flex items-center gap-3 min-h-11 md:min-h-0 pl-3 sm:pl-4 border-l border-border hover:opacity-90 transition-opacity cursor-pointer text-left"
                 >
                   <div className="text-right hidden md:block">
                     <p className="text-sm font-medium text-ink leading-tight">
@@ -239,7 +345,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               ) : (
                 <Link
                   href="/login"
-                  className="flex items-center gap-2 pl-4 border-l border-border text-sm font-semibold text-primary hover:underline"
+                  className="flex items-center gap-2 min-h-11 md:min-h-0 pl-3 sm:pl-4 border-l border-border text-sm font-semibold text-primary hover:underline"
                 >
                   <Lock className="w-4 h-4" />
                   <span>Sign In</span>
@@ -253,7 +359,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 4 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute right-0 mt-2 w-72 bg-surface border border-border shadow-xl z-50 p-4 divide-y divide-border"
+                    className="fixed inset-x-3 top-16 z-50 bg-surface border border-border shadow-xl p-4 divide-y divide-border sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-72"
                   >
                     <div className="pb-3">
                       <p className="text-sm font-bold text-ink">{user.name}</p>
@@ -298,11 +404,102 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      {/* Sidebar */}
+      {/* Mobile navigation drawer — takes over from the sidebar below md */}
+      <AnimatePresence>
+        {mobileNavOpen && (
+          <>
+            <motion.div
+              key="mobile-nav-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setMobileNavOpen(false)}
+              className="fixed inset-0 z-40 bg-black/50 md:hidden"
+              aria-hidden="true"
+            />
+            <motion.aside
+              key="mobile-nav"
+              id="mobile-navigation"
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ duration: 0.25, ease: "easeInOut" }}
+              className="fixed top-14 left-0 bottom-0 z-50 flex w-72 max-w-[85vw] flex-col bg-surface border-r border-border md:hidden"
+              aria-label="Navigation"
+            >
+              <div className="flex items-center justify-between gap-2 p-3 border-b border-border">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+                  Workspace
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setMobileNavOpen(false)}
+                  className="flex h-11 w-11 items-center justify-center text-ink-muted hover:text-ink hover:bg-surface-elevated transition-colors cursor-pointer"
+                  aria-label="Close navigation menu"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <nav className="flex-1 py-4 overflow-y-auto">
+                <NavigationItems
+                  pathname={pathname}
+                  layoutId="activeIndicatorMobile"
+                  onNavigate={() => setMobileNavOpen(false)}
+                />
+              </nav>
+
+              <div className="border-t border-border">
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="flex w-full min-h-11 items-center gap-3 px-4 text-sm font-medium text-ink-muted hover:text-ink hover:bg-surface-elevated transition-colors cursor-pointer"
+                >
+                  {theme === "dark" ? (
+                    <Sun className="w-4 h-4 flex-shrink-0" />
+                  ) : (
+                    <Moon className="w-4 h-4 flex-shrink-0" />
+                  )}
+                  <span className="whitespace-nowrap">
+                    {theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+                  </span>
+                </button>
+              </div>
+
+              {user && (
+                <div className="p-3 border-t border-border bg-surface-elevated/40">
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <div className="min-w-0">
+                      <span className="font-semibold text-ink block truncate">
+                        {user.name}
+                      </span>
+                      <span className="text-[10px] text-success flex items-center gap-1 mt-0.5">
+                        <span className="w-1.5 h-1.5 bg-success rounded-full animate-pulse" />
+                        CooL Node Active
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleSignOut}
+                      title="Sign Out"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center text-ink-muted hover:text-error transition-colors cursor-pointer"
+                    >
+                      <LogOut className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Sidebar (desktop) */}
       <motion.aside
-        animate={{ width: sidebarCollapsed ? 64 : 224 }}
+        animate={{ width: asideWidth }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
-        className="fixed top-14 left-0 bottom-0 bg-surface border-r border-border overflow-hidden z-40"
+        className="hidden md:block fixed top-14 left-0 bottom-0 bg-surface border-r border-border overflow-hidden z-40"
       >
         <nav className="flex flex-col h-full">
           {/* Collapse button */}
@@ -338,39 +535,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
           {/* Main navigation */}
           <div className="flex-1 py-4 overflow-y-auto">
-            {navigation.map((item, index) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className="relative block"
-                >
-                  <motion.div
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
-                      isActive
-                        ? "text-ink bg-surface-elevated"
-                        : "text-ink-muted hover:text-ink hover:bg-surface-elevated"
-                    }`}
-                  >
-                    <item.icon className="w-4 h-4 flex-shrink-0" />
-                    {!sidebarCollapsed && (
-                      <span className="whitespace-nowrap">{item.name}</span>
-                    )}
-                    {isActive && (
-                      <motion.div
-                        layoutId="activeIndicator"
-                        className="absolute right-0 top-0 bottom-0 w-0.5 bg-primary"
-                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                      />
-                    )}
-                  </motion.div>
-                </Link>
-              );
-            })}
+            <NavigationItems
+              pathname={pathname}
+              collapsed={sidebarCollapsed}
+              layoutId="activeIndicator"
+            />
           </div>
 
           {/* Sidebar Footer User Info */}
@@ -400,14 +569,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </nav>
       </motion.aside>
 
-      {/* Main content */}
-      <motion.main
-        animate={{ marginLeft: sidebarCollapsed ? 64 : 224 }}
-        transition={{ duration: 0.3, ease: "easeInOut" }}
-        className="pt-14 min-h-screen bg-background"
-      >
-        <div className="p-8">{children}</div>
-      </motion.main>
+      {/* Main content. The spacer below reproduces the sidebar offset in the flow so
+          the responsive behaviour stays in CSS (the sidebar is desktop-only). */}
+      <div className="pt-14 min-h-screen bg-background flex">
+        <motion.div
+          aria-hidden="true"
+          animate={{ width: asideWidth }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+          className="hidden shrink-0 md:block"
+        />
+        <main className="flex-1 min-w-0">
+          <div className="p-4 sm:p-8">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }

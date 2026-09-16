@@ -76,6 +76,9 @@
 
   html {
     color-scheme: light;
+    /* Stop Android Chrome / iOS text autosizing from inflating small-screen type. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   [data-theme="dark"] {
@@ -91,6 +94,20 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     transition: background-color 0.25s ease, color 0.25s ease;
+    /*
+      Long unbroken strings (content hashes, record IDs, URLs) are everywhere in
+      this app. `break-word` only kicks in when a word would otherwise overflow
+      its line, and it does not change intrinsic sizing — so table/grid column
+      widths on desktop stay exactly as they are.
+    */
+    overflow-wrap: break-word;
+  }
+
+  /* Tailwind preflight covers img/video; these can also be wider than the viewport. */
+  svg,
+  canvas,
+  iframe {
+    max-width: 100%;
   }
 
   h1, h2, h3, h4, h5, h6 {

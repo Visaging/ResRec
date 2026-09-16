@@ -196,7 +196,7 @@ export default function DatasetsPage() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
-          className="fixed top-6 right-6 z-50 bg-primary text-white px-4 py-3 shadow-xl border border-primary/30 flex items-center gap-2 text-sm"
+          className="fixed left-4 right-4 top-6 z-50 bg-primary text-white px-4 py-3 shadow-xl border border-primary/30 flex items-center gap-2 text-sm sm:left-auto sm:right-6"
         >
           <CheckCircle2 className="w-4 h-4 text-success" />
           <span>{notification}</span>
@@ -236,9 +236,9 @@ export default function DatasetsPage() {
       />
 
       {/* Advanced Filters */}
-      <Card className="p-6 mb-6">
-        <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-12 lg:col-span-4">
+      <Card className="p-4 sm:p-6 mb-6">
+        <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 md:grid md:grid-cols-3 lg:grid lg:grid-cols-12 lg:gap-4">
+          <div className="col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-faint pointer-events-none" />
               <Input
@@ -249,7 +249,7 @@ export default function DatasetsPage() {
               />
             </div>
           </div>
-          <div className="col-span-6 sm:col-span-3 lg:col-span-2">
+          <div className="col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-2">
             <Select
               options={[
                 { value: "all", label: "All Statuses" },
@@ -264,7 +264,7 @@ export default function DatasetsPage() {
               className="w-full"
             />
           </div>
-          <div className="col-span-6 sm:col-span-3 lg:col-span-2">
+          <div className="col-span-1 sm:col-span-1 md:col-span-1 lg:col-span-2">
             <Select
               options={[
                 { value: "all", label: "All Experiments" },
@@ -280,7 +280,7 @@ export default function DatasetsPage() {
               className="w-full"
             />
           </div>
-          <div className="col-span-12 sm:col-span-6 lg:col-span-4">
+          <div className="col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-4">
             <Select
               options={[
                 { value: "updatedDesc", label: "Sort: Newest First" },
@@ -300,7 +300,7 @@ export default function DatasetsPage() {
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
-            className="flex items-center gap-2 mt-4 pt-4 border-t border-border"
+            className="flex flex-wrap items-center gap-2 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border"
           >
             <span className="text-xs text-ink-muted">Active filters:</span>
             {searchTerm && (
@@ -333,12 +333,12 @@ export default function DatasetsPage() {
       </Card>
 
       {/* Results summary */}
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-ink-muted">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3 sm:gap-0">
+        <p className="text-xs sm:text-sm text-ink-muted">
           Showing <span className="font-medium text-ink">{filteredDatasets.length}</span> of{" "}
           <span className="font-medium text-ink">{datasets.length}</span> datasets
         </p>
-        <div className="flex items-center gap-3 text-sm text-ink-muted">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 text-xs sm:text-sm text-ink-muted">
           <Button variant="outline" size="sm" onClick={handleExportCatalog}>
             <Download className="w-3 h-3 mr-1" />
             Export
@@ -354,7 +354,7 @@ export default function DatasetsPage() {
         </div>
       </div>
 
-      {/* Datasets Table */}
+      {/* Datasets Table & Mobile Cards */}
       {filteredDatasets.length === 0 ? (
         <Card className="p-8">
           <EmptyState
@@ -379,101 +379,186 @@ export default function DatasetsPage() {
           />
         </Card>
       ) : (
-        <Card className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="border-b border-border bg-surface">
-                <tr>
-                  <th className="text-left py-4 px-6 font-medium text-ink">
-                    Dataset
-                  </th>
-                  <th className="text-left py-4 px-6 font-medium text-ink">
-                    Experiment
-                  </th>
-                  <th className="text-center py-4 px-6 font-medium text-ink">
-                    Version
-                  </th>
-                  <th className="text-center py-4 px-6 font-medium text-ink">
-                    Records
-                  </th>
-                  <th className="text-center py-4 px-6 font-medium text-ink">
-                    Size
-                  </th>
-                  <th className="text-center py-4 px-6 font-medium text-ink">
-                    Integrity
-                  </th>
-                  <th className="text-left py-4 px-6 font-medium text-ink">
-                    Updated
-                  </th>
-                  <th className="text-right py-4 px-6 font-medium text-ink">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filteredDatasets.map((ds, index) => (
-                  <motion.tr
-                    key={ds.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.02 }}
-                    className="hover:bg-surface-elevated transition-all cursor-pointer group"
-                  >
-                    <td className="py-4 px-6 text-sm text-ink">
-                      <div className="font-medium group-hover:text-primary transition-colors">
-                        {ds.filename}
-                      </div>
-                      <div className="text-xs text-ink-muted mt-1 font-mono">
-                        {truncateHash(ds.sha256, 12)}
-                      </div>
-                    </td>
-                    <td className="py-4 px-6 text-sm text-ink">
-                      <Link
-                        href={`/experiments/${ds.experimentId}`}
-                        className="block hover:text-primary transition-colors font-mono font-medium"
-                      >
-                        {ds.experimentId}
-                      </Link>
-                    </td>
-                    <td className="py-4 px-6 text-sm font-medium text-ink text-center">
+        <>
+          {/* Desktop Table View */}
+          <Card className="p-0 hidden sm:block">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="border-b border-border bg-surface">
+                  <tr>
+                    <th className="text-left py-4 px-4 sm:px-6 font-medium text-ink">
+                      Dataset
+                    </th>
+                    <th className="text-left py-4 px-4 sm:px-6 font-medium text-ink">
+                      Experiment
+                    </th>
+                    <th className="text-center py-4 px-4 sm:px-6 font-medium text-ink">
+                      Version
+                    </th>
+                    <th className="text-center py-4 px-4 sm:px-6 font-medium text-ink">
+                      Records
+                    </th>
+                    <th className="text-center py-4 px-4 sm:px-6 font-medium text-ink">
+                      Size
+                    </th>
+                    <th className="text-center py-4 px-4 sm:px-6 font-medium text-ink">
+                      Integrity
+                    </th>
+                    <th className="text-left py-4 px-4 sm:px-6 font-medium text-ink">
+                      Updated
+                    </th>
+                    <th className="text-right py-4 px-4 sm:px-6 font-medium text-ink">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {filteredDatasets.map((ds, index) => (
+                    <motion.tr
+                      key={ds.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.02 }}
+                      className="hover:bg-surface-elevated transition-all cursor-pointer group"
+                    >
+                      <td className="py-4 px-4 sm:px-6 text-xs sm:text-sm text-ink">
+                        <div className="font-medium group-hover:text-primary transition-colors">
+                          {ds.filename}
+                        </div>
+                        <div className="text-[10px] sm:text-xs text-ink-muted mt-1 font-mono">
+                          {truncateHash(ds.sha256, 12)}
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 sm:px-6 text-xs sm:text-sm text-ink">
+                        <Link
+                          href={`/experiments/${ds.experimentId}`}
+                          className="block hover:text-primary transition-colors font-mono font-medium"
+                        >
+                          {ds.experimentId}
+                        </Link>
+                      </td>
+                      <td className="py-4 px-4 sm:px-6 text-xs sm:text-sm font-medium text-ink text-center">
+                        v{ds.version}
+                      </td>
+                      <td className="py-4 px-4 sm:px-6 text-xs sm:text-sm font-medium text-ink text-center">
+                        {ds.recordCount.toLocaleString()}
+                      </td>
+                      <td className="py-4 px-4 sm:px-6 text-xs sm:text-sm font-medium text-ink text-center">
+                        {formatBytes(ds.sizeBytes)}
+                      </td>
+                      <td className="py-4 px-4 sm:px-6 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <VerificationIcon status={ds.status} />
+                          <span className="text-[10px] sm:text-xs font-medium capitalize">
+                            {ds.status.replace(/_/g, " ")}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 sm:px-6 text-xs sm:text-sm text-ink-muted">
+                        {formatDateTime(ds.updatedAt)}
+                      </td>
+                      <td className="py-4 px-4 sm:px-6 text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            downloadJsonFile(`${ds.filename}.json`, ds);
+                            showNotification(`Downloaded metadata for ${ds.filename}`);
+                          }}
+                        >
+                          <Download className="w-3.5 h-3.5 mr-1" />
+                          Download
+                        </Button>
+                      </td>
+                    </motion.tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+
+          {/* Mobile Card View */}
+          <div className="sm:hidden space-y-3">
+            {filteredDatasets.map((ds, index) => (
+              <motion.div
+                key={ds.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.02 }}
+              >
+                <Card className="p-4 space-y-3">
+                  {/* Header: Filename + Experiment */}
+                  <div className="pb-3 border-b border-border">
+                    <h3 className="text-sm font-semibold text-ink group-hover:text-primary transition-colors mb-1">
+                      {ds.filename}
+                    </h3>
+                    <Link
+                      href={`/experiments/${ds.experimentId}`}
+                      className="text-xs font-mono text-primary hover:text-primary-hover transition-colors"
+                    >
+                      {ds.experimentId}
+                    </Link>
+                    <p className="text-[10px] text-ink-muted font-mono mt-1">
+                      Hash: {truncateHash(ds.sha256, 16)}
+                    </p>
+                  </div>
+
+                  {/* Status & Version */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <VerificationIcon status={ds.status} />
+                      <span className="text-xs font-medium capitalize text-ink">
+                        {ds.status.replace(/_/g, " ")}
+                      </span>
+                    </div>
+                    <span className="text-xs font-medium text-ink-muted bg-surface px-2 py-1">
                       v{ds.version}
-                    </td>
-                    <td className="py-4 px-6 text-sm font-medium text-ink text-center">
-                      {ds.recordCount.toLocaleString()}
-                    </td>
-                    <td className="py-4 px-6 text-sm font-medium text-ink text-center">
-                      {formatBytes(ds.sizeBytes)}
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <VerificationIcon status={ds.status} />
-                        <span className="text-xs font-medium capitalize">
-                          {ds.status.replace(/_/g, " ")}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6 text-sm text-ink-muted">
-                      {formatDateTime(ds.updatedAt)}
-                    </td>
-                    <td className="py-4 px-6 text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          downloadJsonFile(`${ds.filename}.json`, ds);
-                          showNotification(`Downloaded metadata for ${ds.filename}`);
-                        }}
-                      >
-                        <Download className="w-3.5 h-3.5 mr-1" />
-                        Download
-                      </Button>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
+                    </span>
+                  </div>
+
+                  {/* Metadata Grid */}
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="bg-surface-elevated p-2">
+                      <p className="text-ink-muted font-medium uppercase tracking-wide text-[10px] mb-1">
+                        Records
+                      </p>
+                      <p className="font-semibold text-ink">
+                        {ds.recordCount.toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="bg-surface-elevated p-2">
+                      <p className="text-ink-muted font-medium uppercase tracking-wide text-[10px] mb-1">
+                        Size
+                      </p>
+                      <p className="font-semibold text-ink">
+                        {formatBytes(ds.sizeBytes)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Updated & Actions */}
+                  <div className="pt-2 border-t border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <p className="text-xs text-ink-muted">
+                      Updated: {formatDateTime(ds.updatedAt)}
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        downloadJsonFile(`${ds.filename}.json`, ds);
+                        showNotification(`Downloaded metadata for ${ds.filename}`);
+                      }}
+                      className="w-full sm:w-auto"
+                    >
+                      <Download className="w-3.5 h-3.5 mr-1" />
+                      Download
+                    </Button>
+                  </div>
+                </Card>
+              </motion.div>
+            ))}
           </div>
-        </Card>
+        </>
       )}
 
       {/* Upload Dataset Modal */}
