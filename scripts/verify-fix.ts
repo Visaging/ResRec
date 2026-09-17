@@ -59,7 +59,7 @@ async function run() {
   });
   console.log(`  ✓ Loaded ${experiments.length} experiments:`);
   for (const exp of experiments) {
-    console.log(`    - [${exp.experimentId}] ${exp.title.substring(0, 40)}... (Owner: ${exp.user.name}, Status: ${exp.status})`);
+    console.log(`    - [${exp.id}] ${exp.title.substring(0, 40)}... (Owner: ${exp.user?.name || "Unknown"}, Status: ${exp.status})`);
   }
 
   console.log("\n==================================================");

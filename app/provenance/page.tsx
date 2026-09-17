@@ -204,10 +204,10 @@ function GraphNodeSvg({
           <motion.circle
             cx={node.x}
             cy={node.y}
-            r={48 / scale}
+            r={48}
             fill="none"
             stroke="var(--color-primary)"
-            strokeWidth={3 / scale}
+            strokeWidth={3}
             strokeDasharray="4 2"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -221,10 +221,10 @@ function GraphNodeSvg({
         <circle
           cx={node.x}
           cy={node.y}
-          r={45 / scale}
+          r={45}
           fill="none"
           stroke="var(--color-primary)"
-          strokeWidth={2 / scale}
+          strokeWidth={2}
           opacity={0.6}
         />
       )}
@@ -233,10 +233,10 @@ function GraphNodeSvg({
       <motion.circle
         cx={node.x}
         cy={node.y}
-        r={38 / scale}
+        r={38}
         fill={color.fill}
         stroke={isFailed ? "var(--color-error)" : color.stroke}
-        strokeWidth={isFailed ? 2.5 / scale : 2 / scale}
+        strokeWidth={isFailed ? 2.5 : 2}
         filter="url(#provenance-node-shadow)"
         whileHover={{ scale: 1.1 }}
         transition={{ duration: 0.15 }}
@@ -245,30 +245,30 @@ function GraphNodeSvg({
       {/* Verification status badge marker */}
       {isFailed ? (
         <circle
-          cx={node.x + 24 / scale}
-          cy={node.y - 24 / scale}
-          r={8 / scale}
+          cx={node.x + 24}
+          cy={node.y - 24}
+          r={8}
           fill="var(--color-error)"
           stroke="var(--color-surface)"
-          strokeWidth={2 / scale}
+          strokeWidth={2}
         />
       ) : (
         <circle
-          cx={node.x + 24 / scale}
-          cy={node.y - 24 / scale}
-          r={6 / scale}
+          cx={node.x + 24}
+          cy={node.y - 24}
+          r={6}
           fill="var(--color-success)"
           stroke="var(--color-surface)"
-          strokeWidth={1.5 / scale}
+          strokeWidth={1.5}
         />
       )}
 
       {/* Node Icon inside SVG */}
       <foreignObject
-        x={node.x - 9 / scale}
-        y={node.y - 9 / scale}
-        width={18 / scale}
-        height={18 / scale}
+        x={node.x - 9}
+        y={node.y - 9}
+        width={18}
+        height={18}
         style={{ pointerEvents: "none" }}
       >
         <div
@@ -282,20 +282,20 @@ function GraphNodeSvg({
       {/* Node Label */}
       <text
         x={node.x}
-        y={node.y + 54 / scale}
+        y={node.y + 54}
         textAnchor="middle"
         fill="var(--color-ink)"
-        fontSize={11 / scale}
+        fontSize={11}
         fontWeight={isSelected ? "600" : "500"}
         stroke="var(--color-surface)"
-        strokeWidth={4 / scale}
+        strokeWidth={4}
         strokeLinejoin="round"
         paintOrder="stroke fill"
         style={{ pointerEvents: "none" }}
       >
         <title>{node.label}</title>
         {labelLines.map((line, index) => (
-          <tspan key={`${node.id}-label-${index}`} x={node.x} dy={index === 0 ? 0 : 13 / scale}>
+          <tspan key={`${node.id}-label-${index}`} x={node.x} dy={index === 0 ? 0 : 13}>
             {line}
           </tspan>
         ))}
@@ -304,13 +304,13 @@ function GraphNodeSvg({
       {/* Node Subtitle (Type) */}
       <text
         x={node.x}
-        y={node.y + (labelLines.length > 1 ? 82 : 68) / scale}
+        y={node.y + (labelLines.length > 1 ? 82 : 68)}
         textAnchor="middle"
         fill="var(--color-ink-muted)"
-        fontSize={9 / scale}
+        fontSize={9}
         className="uppercase tracking-wider"
         stroke="var(--color-surface)"
-        strokeWidth={3 / scale}
+        strokeWidth={3}
         strokeLinejoin="round"
         paintOrder="stroke fill"
         style={{ pointerEvents: "none" }}
@@ -354,7 +354,7 @@ function GraphEdgeSvg({
     ? "var(--color-primary)"
     : "color-mix(in srgb, var(--color-border) 70%, transparent)";
 
-  const strokeWidth = (isHighlighted ? 3 : 1.5) / scale;
+  const strokeWidth = isHighlighted ? 3 : 1.5;
 
   return (
     <g opacity={isDimmed ? 0.15 : 1}>
@@ -371,9 +371,9 @@ function GraphEdgeSvg({
 
       {/* Small arrow / direction dot */}
       <circle
-        cx={toNode.x - (dx / (dist || 1)) * (38 / scale)}
-        cy={toNode.y - (dy / (dist || 1)) * (38 / scale)}
-        r={3.5 / scale}
+        cx={toNode.x - (dx / (dist || 1)) * 38}
+        cy={toNode.y - (dy / (dist || 1)) * 38}
+        r={3.5}
         fill={isHighlighted ? "var(--color-primary)" : "var(--color-ink-muted)"}
       />
 
@@ -381,10 +381,10 @@ function GraphEdgeSvg({
       {isHighlighted && (
         <text
           x={ctrlX}
-          y={ctrlY - 4 / scale}
+          y={ctrlY - 4}
           textAnchor="middle"
           fill="var(--color-primary)"
-          fontSize={10 / scale}
+          fontSize={10}
           fontWeight="600"
           className="bg-surface px-1"
         >
@@ -428,6 +428,13 @@ export default function ProvenancePage() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [isGraphExpanded, setIsGraphExpanded] = useState(false);
+  const [isPinching, setIsPinching] = useState(false);
+  const [pinchData, setPinchData] = useState<{
+    distance: number;
+    zoom: number;
+    pan: { x: number; y: number };
+    midpoint: { x: number; y: number };
+  } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
   // Load experiments list
@@ -472,6 +479,33 @@ export default function ProvenancePage() {
     setPan({ x: 0, y: 0 });
   };
 
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault(); // prevent page scroll
+    const delta = e.deltaY;
+    const zoomChange = Math.exp(-delta * 0.001); // base sensitivity
+    let newZoom = zoom * zoomChange;
+    newZoom = Math.min(Math.max(newZoom, 0.35), 3);
+    if (newZoom === zoom) return;
+
+    const svg = svgRef.current;
+    if (!svg) return;
+    const point = svg.createSVGPoint();
+    point.x = e.clientX;
+    point.y = e.clientY;
+    const screenCTM = svg.getScreenCTM();
+    if (screenCTM) {
+      const inverted = screenCTM.inverse();
+      const svgPoint = point.matrixTransform(inverted);
+      const { x: svgX, y: svgY } = svgPoint;
+      const offsetX = 50;
+      const offsetY = 20;
+      const newPanX = e.clientX - (svgX * newZoom + offsetX);
+      const newPanY = e.clientY - (svgY * newZoom + offsetY);
+      setZoom(newZoom);
+      setPan({ x: newPanX, y: newPanY });
+    }
+  };
+
   const handleMouseDown = (e: React.MouseEvent) => {
     if (
       e.target === svgRef.current ||
@@ -496,14 +530,22 @@ export default function ProvenancePage() {
     setIsDragging(false);
   };
 
-  // Touch support for mobile pan
+  // Touch support for mobile pan and pinch zoom
   const handleTouchStart = (e: React.TouchEvent) => {
     if (
       e.target === svgRef.current ||
       (e.target as SVGElement).tagName === "svg" ||
       (e.target as SVGElement).tagName === "rect"
     ) {
-      if (e.touches.length === 1) {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        setIsPinching(true);
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+        const distance = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+        const midpoint = { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 };
+        setPinchData({ distance, zoom, pan: { x: pan.x, y: pan.y }, midpoint });
+      } else if (e.touches.length === 1) {
         setIsDragging(true);
         setDragStart({ x: e.touches[0].clientX - pan.x, y: e.touches[0].clientY - pan.y });
       }
@@ -511,16 +553,30 @@ export default function ProvenancePage() {
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (isDragging && e.touches.length === 1) {
-      setPan({
-        x: e.touches[0].clientX - dragStart.x,
-        y: e.touches[0].clientY - dragStart.y,
-      });
+    if (isPinching && e.touches.length === 2) {
+      e.preventDefault();
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const distance = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+      const pinch = pinchData!;
+      const scaleFactor = distance / pinch.distance;
+      let newZoom = Math.min(Math.max(pinch.zoom * scaleFactor, 0.35), 3);
+      const midpoint = pinch.midpoint;
+      const offsetX = 50;
+      const offsetY = 20;
+      const newPanX = midpoint.x - (midpoint.x * newZoom + offsetX);
+      const newPanY = midpoint.y - (midpoint.y * newZoom + offsetY);
+      setZoom(newZoom);
+      setPan({ x: newPanX, y: newPanY });
+    } else if (e.touches.length === 1 && isDragging) {
+      setPan({ x: e.touches[0].clientX - dragStart.x, y: e.touches[0].clientY - dragStart.y });
     }
   };
 
   const handleTouchEnd = () => {
     setIsDragging(false);
+    setIsPinching(false);
+    setPinchData(null);
   };
 
   const toggleTypeFilter = (type: ProvenanceNodeType) => {
@@ -838,6 +894,7 @@ export default function ProvenancePage() {
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
+              onWheel={handleWheel}
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
@@ -1101,7 +1158,7 @@ export default function ProvenancePage() {
                             <button
                               key={`down-${i}`}
                               onClick={() => tgt && setSelectedNode(tgt)}
-                              className="w-full text-left p-2 bg-surface hover:bg-surface-elevated border border-border text-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 group transition-colors"
+                              className="w-full text-left p-2 bg-surface hover:bg-surface-elevated border border-border text-xs flex flex-col sm:flex-row sm:justify-between gap-1 group transition-colors"
                             >
                               <div className="flex items-center gap-1">
                                 <ArrowRight className="w-3 h-3 text-ink-muted flex-shrink-0" />
