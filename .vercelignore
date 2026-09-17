@@ -2,8 +2,8 @@
 AGENTS.md
 CLAUDE.md
 API.md
-REDESIGN_V2_SUMMARY.md
 scripts/
+prisma/dev.db*
 
 # Local generated artifacts
 .next/

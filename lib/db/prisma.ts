@@ -25,10 +25,23 @@ function searchForDevDb(dir: string, depth = 0): string | null {
 }
 
 function getDatabaseUrl(): string {
-  // If user provided a custom cloud database URL (e.g., PostgreSQL, Neon, Supabase, Turso), use it directly
   const envUrl = process.env.DATABASE_URL;
-  if (envUrl && !envUrl.startsWith("file:./") && !envUrl.startsWith("file:dev.db")) {
-    return envUrl;
+  const nodeEnv = process.env.NODE_ENV ?? "development";
+  const isProduction = nodeEnv === "production";
+  const isDeploymentRuntime = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.LAMBDA_TASK_ROOT);
+
+  if (envUrl) {
+    if (!envUrl.startsWith("file:./") && !envUrl.startsWith("file:dev.db")) {
+      return envUrl;
+    }
+
+    if (isProduction && isDeploymentRuntime) {
+      throw new Error("DATABASE_URL must point to a non-local database in production. Set it in Vercel or your hosting environment.");
+    }
+  }
+
+  if (isProduction && isDeploymentRuntime && !envUrl) {
+    throw new Error("DATABASE_URL is required in production. Set it in your deployment environment before starting the app.");
   }
 
   // Detect serverless environment (Vercel, AWS Lambda, Netlify, etc.)
@@ -36,7 +49,7 @@ function getDatabaseUrl(): string {
     process.env.VERCEL ||
     process.env.AWS_LAMBDA_FUNCTION_NAME ||
     process.env.LAMBDA_TASK_ROOT ||
-    (process.env.NODE_ENV === "production" && process.platform !== "win32")
+    (isProduction && process.platform !== "win32")
   );
 
   if (isServerless) {
@@ -129,6 +142,8 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+const nodeEnv = process.env.NODE_ENV ?? "development";
+const isProduction = nodeEnv === "production";
 const databaseUrl = getDatabaseUrl();
 
 export const prisma =
@@ -139,9 +154,9 @@ export const prisma =
         url: databaseUrl,
       },
     },
-    log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+    log: nodeEnv === "development" ? ["warn", "error"] : ["error"],
   });
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+if (!isProduction) globalForPrisma.prisma = prisma;
 
 export default prisma;

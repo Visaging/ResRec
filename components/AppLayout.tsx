@@ -109,7 +109,7 @@ function NavigationItems({
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, loading } = useAuth();
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -118,6 +118,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { theme, toggleTheme } = useTheme();
 
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const isLoginPage = pathname === "/login";
 
   // Close user menu on outside click
   useEffect(() => {
@@ -169,7 +170,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     router.push("/login");
   };
 
-  const isLoginPage = pathname === "/login";
+  useEffect(() => {
+    if (loading) return;
+
+    if (!user) {
+      if (!isLoginPage) {
+        router.replace(`/login?from=${encodeURIComponent(pathname)}`);
+      }
+    }
+
+    if (user && isLoginPage) {
+      router.replace("/");
+    }
+  }, [loading, user, isLoginPage, pathname, router]);
 
   if (isLoginPage) {
     return (
@@ -337,8 +350,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       {user.role === "REVIEWER" ? "Peer Reviewer" : "Researcher"}
                     </p>
                   </div>
-                  <div className="w-9 h-9 rounded-full bg-primary/15 text-primary flex items-center justify-center text-sm font-semibold border border-primary/30">
-                    {initials}
+                  <div className="w-9 h-9 rounded-full bg-primary/15 text-primary flex items-center justify-center text-sm font-semibold border border-primary/30 overflow-hidden flex-shrink-0">
+                    {user.avatarUrl ? (
+                      <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
+                    ) : (
+                      initials
+                    )}
                   </div>
                   <ChevronDown className="w-3.5 h-3.5 text-ink-faint hidden md:block" />
                 </button>
@@ -377,12 +394,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
                     <div className="py-2">
                       <Link
-                        href="/login"
+                        href="/profile"
                         onClick={() => setUserMenuOpen(false)}
                         className="flex items-center gap-2 px-2 py-1.5 text-xs text-ink-muted hover:text-ink hover:bg-surface-elevated transition-colors"
                       >
                         <User className="w-3.5 h-3.5" />
-                        <span>Switch Researcher Account</span>
+                        <span>Profile</span>
                       </Link>
                     </div>
 
@@ -451,6 +468,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </nav>
 
               <div className="border-t border-border">
+                <Link
+                  href="/profile"
+                  onClick={() => setMobileNavOpen(false)}
+                  className="flex w-full min-h-11 items-center gap-3 px-4 text-sm font-medium text-ink-muted hover:text-ink hover:bg-surface-elevated transition-colors"
+                >
+                  <User className="w-4 h-4 flex-shrink-0" />
+                  <span>Profile</span>
+                </Link>
                 <button
                   type="button"
                   onClick={toggleTheme}
@@ -467,29 +492,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </button>
               </div>
 
-              {user && (
-                <div className="p-3 border-t border-border bg-surface-elevated/40">
-                  <div className="flex items-center justify-between gap-2 text-xs">
-                    <div className="min-w-0">
-                      <span className="font-semibold text-ink block truncate">
-                        {user.name}
-                      </span>
-                      <span className="text-[10px] text-success flex items-center gap-1 mt-0.5">
-                        <span className="w-1.5 h-1.5 bg-success rounded-full animate-pulse" />
-                        CooL Node Active
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleSignOut}
-                      title="Sign Out"
-                      className="flex h-11 w-11 shrink-0 items-center justify-center text-ink-muted hover:text-error transition-colors cursor-pointer"
-                    >
-                      <LogOut className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              )}
             </motion.aside>
           </>
         )}
@@ -543,29 +545,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* Sidebar Footer User Info */}
-          {!sidebarCollapsed && user && (
-            <div className="p-3 border-t border-border bg-surface-elevated/40">
-              <div className="flex items-center justify-between text-xs">
-                <div className="truncate pr-2">
-                  <span className="font-semibold text-ink block truncate">
-                    {user.name}
-                  </span>
-                  <span className="text-[10px] text-success flex items-center gap-1 mt-0.5">
-                    <span className="w-1.5 h-1.5 bg-success rounded-full animate-pulse" />
-                    CooL Node Active
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleSignOut}
-                  title="Sign Out"
-                  className="p-1 text-ink-muted hover:text-error transition-colors cursor-pointer"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          )}
         </nav>
       </motion.aside>
 

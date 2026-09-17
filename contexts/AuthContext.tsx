@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { AuthUser } from "@/types";
-import { getCurrentUser, loginUser, registerUser, logoutUser } from "@/services/api";
+import { changePassword, getCurrentUser, loginUser, registerUser, logoutUser, updateProfile, updateAvatar } from "@/services/api";
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -18,6 +18,15 @@ interface AuthContextType {
     role?: string;
   }) => Promise<void>;
   logout: () => Promise<void>;
+  updateProfile: (data: {
+    name: string;
+    email: string;
+    institutionName?: string;
+    department?: string;
+    currentPassword?: string;
+  }) => Promise<void>;
+  changePassword: (data: { currentPassword: string; newPassword: string }) => Promise<void>;
+  updateAvatar: (avatarUrl: string | null) => Promise<void>;
   refreshUser: () => Promise<void>;
 }
 
@@ -67,6 +76,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateUserProfile = async (data: {
+    name: string;
+    email: string;
+    institutionName?: string;
+    department?: string;
+  }) => {
+    const updatedUser = await updateProfile(data);
+    setUser(updatedUser);
+  };
+
+  const updateUserAvatar = async (avatarUrl: string | null) => {
+    const updatedUser = await updateAvatar(avatarUrl);
+    setUser(updatedUser);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -76,6 +100,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         register,
         logout,
+        updateProfile: updateUserProfile,
+        changePassword,
+        updateAvatar: updateUserAvatar,
         refreshUser,
       }}
     >

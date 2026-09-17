@@ -537,15 +537,19 @@ export default function ProvenancePage() {
       (e.target as SVGElement).tagName === "svg" ||
       (e.target as SVGElement).tagName === "rect"
     ) {
-      if (e.touches.length === 2) {
-        e.preventDefault();
-        setIsPinching(true);
-        const t1 = e.touches[0];
-        const t2 = e.touches[1];
-        const distance = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-        const midpoint = { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 };
-        setPinchData({ distance, zoom, pan: { x: pan.x, y: pan.y }, midpoint });
-      } else if (e.touches.length === 1) {
+if (e.touches.length === 2) {
+  e.preventDefault();
+  setIsPinching(true);
+  const t1 = e.touches[0];
+  const t2 = e.touches[1];
+  const distance = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+  const midpoint = { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 };
+  setPinchData({ distance, zoom, pan: { x: pan.x, y: pan.y }, midpoint });
+} else if (e.touches.length === 1) {
+  e.preventDefault();
+  setIsDragging(true);
+  setDragStart({ x: e.touches[0].clientX - pan.x, y: e.touches[0].clientY - pan.y });
+}
         setIsDragging(true);
         setDragStart({ x: e.touches[0].clientX - pan.x, y: e.touches[0].clientY - pan.y });
       }
@@ -553,23 +557,28 @@ export default function ProvenancePage() {
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (isPinching && e.touches.length === 2) {
-      e.preventDefault();
-      const t1 = e.touches[0];
-      const t2 = e.touches[1];
-      const distance = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-      const pinch = pinchData!;
-      const scaleFactor = distance / pinch.distance;
-      let newZoom = Math.min(Math.max(pinch.zoom * scaleFactor, 0.35), 3);
-      const midpoint = pinch.midpoint;
-      const offsetX = 50;
-      const offsetY = 20;
-      const newPanX = midpoint.x - (midpoint.x * newZoom + offsetX);
-      const newPanY = midpoint.y - (midpoint.y * newZoom + offsetY);
-      setZoom(newZoom);
-      setPan({ x: newPanX, y: newPanY });
-    } else if (e.touches.length === 1 && isDragging) {
-      setPan({ x: e.touches[0].clientX - dragStart.x, y: e.touches[0].clientY - dragStart.y });
+if (isPinching && e.touches.length === 2) {
+  e.preventDefault();
+  const t1 = e.touches[0];
+  const t2 = e.touches[1];
+  const distance = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+  const pinch = pinchData!;
+  const scaleFactor = distance / pinch.distance;
+  let newZoom = Math.min(Math.max(pinch.zoom * scaleFactor, 0.35), 3);
+  const midpoint = pinch.midpoint;
+  const offsetX = 50;
+  const offsetY = 20;
+  const newPanX = midpoint.x - (midpoint.x * newZoom + offsetX);
+  const newPanY = midpoint.y - (midpoint.y * newZoom + offsetY);
+  setZoom(newZoom);
+  setPan({ x: newPanX, y: newPanY });
+} else if (isDragging && e.touches.length === 1) {
+  e.preventDefault();
+  setPan({
+    x: e.touches[0].clientX - dragStart.x,
+    y: e.touches[0].clientY - dragStart.y,
+  });
+}
     }
   };
 
@@ -878,10 +887,12 @@ export default function ProvenancePage() {
           <div
             className={`bg-surface overflow-hidden select-none relative h-[400px] sm:h-[500px] md:h-[650px] lg:h-[1040px] ${
               isGraphExpanded ? "h-full flex-1 min-h-0" : ""
-            }`}
+            } touch-none overscroll-contain`}
             style={{
               background:
                 "radial-gradient(circle at 52% 38%, color-mix(in srgb, var(--color-primary) 8%, var(--color-surface)), var(--color-surface) 62%)",
+              touchAction: "none",
+              overscrollBehavior: "contain",
             }}
           >
             <svg
@@ -899,7 +910,7 @@ export default function ProvenancePage() {
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
               onClick={() => setSelectedNode(null)}
-              style={{ cursor: isDragging ? "grabbing" : "grab" }}
+              style={{ cursor: isDragging ? "grabbing" : "grab", touchAction: "none", overscrollBehavior: "contain" }}
             >
               {/* Background grid pattern */}
               <defs>
@@ -982,11 +993,51 @@ export default function ProvenancePage() {
           </div>
 
           {/* Visual Node Types Legend */}
-          <div className="absolute bottom-3 left-3 bg-surface/95 backdrop-blur-xs rounded-lg border border-border p-3 shadow-lg ring-1 ring-border/30 max-w-xs">
+          <div className="hidden sm:block absolute bottom-3 left-3 bg-surface/95 backdrop-blur-xs rounded-lg border border-border p-3 shadow-lg ring-1 ring-border/30 max-w-xs">
             <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider mb-2">
               Lineage Node Types
             </p>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+              {(
+                [
+                  "experiment",
+                  "instrument",
+                  "sample",
+                  "measurement",
+                  "correction",
+                  "dataset_version",
+                  "dataset",
+                  "processing",
+                  "analysis",
+                  "result",
+                  "evidence",
+                  "submission",
+                ] as ProvenanceNodeType[]
+              ).map((type) => {
+                const config = nodeTypeColors[type];
+                return (
+                  <div key={type} className="flex items-center gap-1.5">
+                    <span
+                      className="w-2.5 h-2.5 rounded-xs border"
+                      style={{
+                        backgroundColor: config.fill,
+                        borderColor: config.stroke,
+                      }}
+                    />
+                    <span className="text-[11px] text-ink capitalize">
+                      {config.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="block sm:hidden border-t border-border bg-surface p-3">
+            <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider mb-2">
+              Lineage Node Types
+            </p>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
               {(
                 [
                   "experiment",

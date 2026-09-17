@@ -41,12 +41,26 @@ export async function POST(request: Request) {
 
     const { token, expiresAt } = await createSession(user.id);
 
+    let avatarUrl: string | null = (user as any).avatarUrl || null;
+    if (avatarUrl === null || avatarUrl === undefined) {
+      try {
+        const rows: any[] = await prisma.$queryRawUnsafe(
+          'SELECT "avatarUrl" FROM "User" WHERE "id" = $1',
+          user.id
+        );
+        if (rows?.[0]?.avatarUrl) {
+          avatarUrl = rows[0].avatarUrl;
+        }
+      } catch {}
+    }
+
     const response = NextResponse.json({
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
         role: user.role,
+        avatarUrl: avatarUrl || null,
         institutionId: user.institutionId,
         institutionName: user.institutionName || user.institution?.name || null,
         department: user.department,

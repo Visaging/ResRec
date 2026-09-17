@@ -557,45 +557,76 @@ export default function ExperimentDetailPage() {
                           {measurements.length} points
                         </span>
                       </div>
-                      <div className="h-40 sm:h-64 w-full -mx-2 sm:mx-0">
+                      <div
+                        className="h-40 sm:h-64 w-full -mx-2 sm:mx-0 touch-none overscroll-contain"
+                        style={{ touchAction: "none", overscrollBehavior: "contain" }}
+                        onTouchMove={(e) => e.preventDefault()}
+                      >
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart data={chartData} margin={{ left: -15, right: 0, top: 5, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                             <XAxis
                               dataKey="trial"
-                              stroke="#6b7280"
-                              fontSize={11}
+                              stroke="var(--color-ink-muted)"
+                              tick={{ fill: "var(--color-ink-muted)", fontSize: 11 }}
                               tickLine={false}
-                              label={{ value: "Trial #", position: "insideBottomRight", offset: -5 }}
+                              axisLine={false}
+                              minTickGap={10}
+                              label={{
+                                value: "Trial #",
+                                position: "insideBottomRight",
+                                offset: -5,
+                                fill: "var(--color-ink-muted)",
+                                fontSize: 11,
+                              }}
                             />
                             <YAxis
-                              stroke="#6b7280"
-                              fontSize={11}
+                              stroke="var(--color-ink-muted)"
+                              tick={{ fill: "var(--color-ink-muted)", fontSize: 11 }}
                               tickLine={false}
+                              axisLine={false}
                               domain={["auto", "auto"]}
                               label={{
                                 value: measurements[0]?.unit || "Value",
                                 angle: -90,
                                 position: "insideLeft",
+                                fill: "var(--color-ink-muted)",
+                                fontSize: 11,
                               }}
                             />
                             <Tooltip
+                              cursor={{ stroke: "var(--color-border-strong)", strokeWidth: 1, strokeDasharray: "4 4" }}
                               contentStyle={{
-                                backgroundColor: "var(--surface)",
-                                borderColor: "var(--border)",
-                                borderRadius: "0px",
+                                backgroundColor: "color-mix(in srgb, var(--color-surface) 94%, transparent)",
+                                borderColor: "var(--color-border)",
+                                borderRadius: "10px",
+                                boxShadow: "0 8px 18px rgba(15, 23, 42, 0.10)",
+                                color: "var(--color-ink)",
                                 fontSize: "12px",
+                                backdropFilter: "blur(8px)",
                               }}
+                              labelStyle={{ color: "var(--color-ink)", fontWeight: 600 }}
+                              itemStyle={{ color: "var(--color-ink)" }}
                             />
-                            <Legend />
+                            <Legend wrapperStyle={{ color: "var(--color-ink)" }} iconType="circle" />
                             <Line
                               type="monotone"
                               dataKey="value"
                               name={measurements[0]?.unit ? `Value (${measurements[0].unit})` : "Value"}
-                              stroke="#000000"
-                              strokeWidth={2}
-                              dot={{ r: 3, fill: "#000000" }}
-                              activeDot={{ r: 5 }}
+                              stroke="var(--color-primary)"
+                              strokeWidth={2.5}
+                              dot={{
+                                r: 3,
+                                fill: "var(--color-primary)",
+                                stroke: "color-mix(in srgb, var(--color-surface) 70%, transparent)",
+                                strokeWidth: 1.5,
+                              }}
+                              activeDot={{
+                                r: 5,
+                                fill: "var(--color-primary)",
+                                stroke: "color-mix(in srgb, var(--color-surface) 68%, transparent)",
+                                strokeWidth: 1.8,
+                              }}
                             />
                           </LineChart>
                         </ResponsiveContainer>
