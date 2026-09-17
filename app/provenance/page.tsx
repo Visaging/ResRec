@@ -737,13 +737,9 @@ export default function ProvenancePage() {
   // with zoom so nodes are visually larger when zoomed in and ensures they are
   // never too small on mobile where the viewBox gets compressed into a small container.
   const nodeScale = useMemo(() => {
-    // On desktop at zoom 1 the base sizes are good. On mobile the container is
-    // shorter (400px vs 1040px) so viewBox contents shrink ~2.6×. We compensate
-    // by enlarging node elements proportionally to zoom.
-    // At zoom 1 → nodeScale 1 (baseline), zoom 2 → ~1.5, zoom 0.5 → ~0.8
-    // This keeps nodes readable at every zoom level and on every viewport.
-    const zoomScale = Math.pow(zoom, 0.55); // sub-linear so spacing can keep up
-    return Math.max(0.7, Math.min(zoomScale, 2.0));
+    // When zooming in, scale node element sizes directly with zoom level
+    // so circles, icons, and text grow prominently for easy touch and readability.
+    return Math.max(0.75, Math.min(zoom * 1.15, 2.5));
   }, [zoom]);
 
   // Dynamically recalculate node positions and spacing based on zoom level
