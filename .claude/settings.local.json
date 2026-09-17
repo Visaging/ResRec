@@ -40,7 +40,15 @@
       "mcp__integrated-browser-mcp__browser_navigate",
       "mcp__integrated-browser-mcp__browser_tab_open",
       "PowerShell(npx prisma generate)",
-      "PowerShell(Read *)"
+      "PowerShell(Read *)",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:3000/provenance)",
+      "Bash(curl -s http://localhost:20128/provenance)",
+      "Bash(npm test *)",
+      "Bash(cat)",
+      "Bash(node /tmp/test-zoom-math.js)",
+      "Bash(node /tmp/test-zoom-math-fixed.js)",
+      "Bash(pkill -f \"next dev\")"
     ]
   }
 }
