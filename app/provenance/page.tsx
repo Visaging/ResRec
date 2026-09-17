@@ -10,7 +10,6 @@ import {
   Card,
   Select,
   Button,
-  VerificationIcon,
   Badge,
   Skeleton,
 } from "@/components/ui";
@@ -24,7 +23,6 @@ import type {
 } from "@/types";
 import {
   getProvenanceGraph,
-  getAllProvenanceGraphs,
   getExperiments,
 } from "@/services/api";
 import {
@@ -43,11 +41,8 @@ import {
   ShieldCheck,
   Search,
   Filter,
-  ExternalLink,
   ArrowRight,
   ArrowLeft,
-  CheckCircle2,
-  AlertCircle,
   RotateCcw,
   X,
 } from "lucide-react";
@@ -170,6 +165,7 @@ function GraphNodeSvg({
   isDimmed,
   onClick,
   scale,
+  nodeScale,
 }: {
   node: ProvenanceGraphNode;
   isSelected: boolean;
@@ -177,10 +173,28 @@ function GraphNodeSvg({
   isDimmed: boolean;
   onClick: () => void;
   scale: number;
+  nodeScale: number;
 }) {
   const color = nodeTypeColors[node.type] ?? nodeTypeColors.experiment;
   const isFailed = !node.verified || node.status === "failed";
-  
+
+  // Base sizes scaled by nodeScale so elements grow/shrink with zoom
+  const bodyRadius = 38 * nodeScale;
+  const selectionRingRadius = 48 * nodeScale;
+  const highlightRingRadius = 45 * nodeScale;
+  const iconSize = 18 * nodeScale;
+  const labelFontSize = 11 * nodeScale;
+  const subtitleFontSize = 9 * nodeScale;
+  const labelYOffset = 54 * nodeScale;
+  const labelLineHeight = 13 * nodeScale;
+  const subtitleYOffset1 = 68 * nodeScale;
+  const subtitleYOffset2 = 82 * nodeScale;
+  const badgeOffset = 24 * nodeScale;
+  const badgeRadiusFail = 8 * nodeScale;
+  const badgeRadiusOk = 6 * nodeScale;
+  const strokeLabel = 4 * nodeScale;
+  const strokeSubtitle = 3 * nodeScale;
+
   // Truncate or wrap label appropriately so it never overflows adjacent nodes
   const maxChars = scale < 0.6 ? 14 : scale < 0.85 ? 18 : 22;
   const labelLines = node.label.length > maxChars
@@ -207,7 +221,7 @@ function GraphNodeSvg({
           <motion.circle
             cx={node.x}
             cy={node.y}
-            r={48}
+            r={selectionRingRadius}
             fill="none"
             stroke="var(--color-primary)"
             strokeWidth={3}
@@ -224,7 +238,7 @@ function GraphNodeSvg({
         <circle
           cx={node.x}
           cy={node.y}
-          r={45}
+          r={highlightRingRadius}
           fill="none"
           stroke="var(--color-primary)"
           strokeWidth={2}
@@ -236,7 +250,7 @@ function GraphNodeSvg({
       <motion.circle
         cx={node.x}
         cy={node.y}
-        r={38}
+        r={bodyRadius}
         fill={color.fill}
         stroke={isFailed ? "var(--color-error)" : color.stroke}
         strokeWidth={isFailed ? 2.5 : 2}
@@ -248,18 +262,18 @@ function GraphNodeSvg({
       {/* Verification status badge marker */}
       {isFailed ? (
         <circle
-          cx={node.x + 24}
-          cy={node.y - 24}
-          r={8}
+          cx={node.x + badgeOffset}
+          cy={node.y - badgeOffset}
+          r={badgeRadiusFail}
           fill="var(--color-error)"
           stroke="var(--color-surface)"
           strokeWidth={2}
         />
       ) : (
         <circle
-          cx={node.x + 24}
-          cy={node.y - 24}
-          r={6}
+          cx={node.x + badgeOffset}
+          cy={node.y - badgeOffset}
+          r={badgeRadiusOk}
           fill="var(--color-success)"
           stroke="var(--color-surface)"
           strokeWidth={1.5}
@@ -268,10 +282,10 @@ function GraphNodeSvg({
 
       {/* Node Icon inside SVG */}
       <foreignObject
-        x={node.x - 9}
-        y={node.y - 9}
-        width={18}
-        height={18}
+        x={node.x - iconSize / 2}
+        y={node.y - iconSize / 2}
+        width={iconSize}
+        height={iconSize}
         style={{ pointerEvents: "none" }}
       >
         <div
@@ -285,20 +299,20 @@ function GraphNodeSvg({
       {/* Node Label */}
       <text
         x={node.x}
-        y={node.y + 54}
+        y={node.y + labelYOffset}
         textAnchor="middle"
         fill="var(--color-ink)"
-        fontSize={11}
+        fontSize={labelFontSize}
         fontWeight={isSelected ? "600" : "500"}
         stroke="var(--color-surface)"
-        strokeWidth={4}
+        strokeWidth={strokeLabel}
         strokeLinejoin="round"
         paintOrder="stroke fill"
         style={{ pointerEvents: "none" }}
       >
         <title>{node.label}</title>
         {labelLines.map((line, index) => (
-          <tspan key={`${node.id}-label-${index}`} x={node.x} dy={index === 0 ? 0 : 13}>
+          <tspan key={`${node.id}-label-${index}`} x={node.x} dy={index === 0 ? 0 : labelLineHeight}>
             {line}
           </tspan>
         ))}
@@ -307,13 +321,13 @@ function GraphNodeSvg({
       {/* Node Subtitle (Type) */}
       <text
         x={node.x}
-        y={node.y + (labelLines.length > 1 ? 82 : 68)}
+        y={node.y + (labelLines.length > 1 ? subtitleYOffset2 : subtitleYOffset1)}
         textAnchor="middle"
         fill="var(--color-ink-muted)"
-        fontSize={9}
+        fontSize={subtitleFontSize}
         className="uppercase tracking-wider"
         stroke="var(--color-surface)"
-        strokeWidth={3}
+        strokeWidth={strokeSubtitle}
         strokeLinejoin="round"
         paintOrder="stroke fill"
         style={{ pointerEvents: "none" }}
@@ -327,13 +341,13 @@ function GraphNodeSvg({
 function GraphEdgeSvg({
   edge,
   nodes,
-  scale,
+  nodeScale,
   isHighlighted,
   isDimmed,
 }: {
   edge: ProvenanceGraphEdge;
   nodes: ProvenanceGraphNode[];
-  scale: number;
+  nodeScale: number;
   isHighlighted: boolean;
   isDimmed: boolean;
 }) {
@@ -357,7 +371,11 @@ function GraphEdgeSvg({
     ? "var(--color-primary)"
     : "color-mix(in srgb, var(--color-border) 70%, transparent)";
 
-  const strokeWidth = isHighlighted ? 3 : 1.5;
+  // Scale the edge arrow offset to match scaled node body radius
+  const bodyRadius = 38 * nodeScale;
+  const strokeWidth = (isHighlighted ? 3 : 1.5) * nodeScale;
+  const dotRadius = 3.5 * nodeScale;
+  const edgeLabelFontSize = 10 * nodeScale;
 
   return (
     <g opacity={isDimmed ? 0.15 : 1}>
@@ -374,9 +392,9 @@ function GraphEdgeSvg({
 
       {/* Small arrow / direction dot */}
       <circle
-        cx={toNode.x - (dx / (dist || 1)) * 38}
-        cy={toNode.y - (dy / (dist || 1)) * 38}
-        r={3.5}
+        cx={toNode.x - (dx / (dist || 1)) * bodyRadius}
+        cy={toNode.y - (dy / (dist || 1)) * bodyRadius}
+        r={dotRadius}
         fill={isHighlighted ? "var(--color-primary)" : "var(--color-ink-muted)"}
       />
 
@@ -387,7 +405,7 @@ function GraphEdgeSvg({
           y={ctrlY - 4}
           textAnchor="middle"
           fill="var(--color-primary)"
-          fontSize={10}
+          fontSize={edgeLabelFontSize}
           fontWeight="600"
           className="bg-surface px-1"
         >
@@ -617,7 +635,7 @@ export default function ProvenancePage() {
         t2.clientY - t1.clientY
       );
       const scaleFactor = distance / pinchData.distance;
-      let newZoom = Math.min(Math.max(pinchData.zoom * scaleFactor, 0.35), 3);
+      const newZoom = Math.min(Math.max(pinchData.zoom * scaleFactor, 0.35), 3);
 
       // Get SVG rect for coordinate conversion
       const svg = svgRef.current;
@@ -715,6 +733,19 @@ export default function ProvenancePage() {
     });
   }, [graphData, activeTypeFilters, searchQuery]);
 
+  // Compute a scale factor for node elements (circles, text, icons) that grows
+  // with zoom so nodes are visually larger when zoomed in and ensures they are
+  // never too small on mobile where the viewBox gets compressed into a small container.
+  const nodeScale = useMemo(() => {
+    // On desktop at zoom 1 the base sizes are good. On mobile the container is
+    // shorter (400px vs 1040px) so viewBox contents shrink ~2.6×. We compensate
+    // by enlarging node elements proportionally to zoom.
+    // At zoom 1 → nodeScale 1 (baseline), zoom 2 → ~1.5, zoom 0.5 → ~0.8
+    // This keeps nodes readable at every zoom level and on every viewport.
+    const zoomScale = Math.pow(zoom, 0.55); // sub-linear so spacing can keep up
+    return Math.max(0.7, Math.min(zoomScale, 2.0));
+  }, [zoom]);
+
   // Dynamically recalculate node positions and spacing based on zoom level
   // When zoom changes, horizontal and vertical spacing adapt dynamically so nodes and labels never overlap
   const { visibleNodes, allNodesLayout, canvasHeight } = useMemo(() => {
@@ -725,9 +756,11 @@ export default function ProvenancePage() {
     // Spacing multipliers that adapt based on zoom level:
     // When zooming in (zoom > 1), provide expansive horizontal and vertical spacing between elements.
     // When zooming out (zoom < 1), scale spacing proportionally so items remain distinctly separated.
+    // Account for nodeScale: when elements are larger they need proportionally more room.
     const spacingFactor = Math.max(0.6, Math.min(zoom, 2.2));
-    const hSpacing = 160 * spacingFactor;
-    const vSpacing = 100 * spacingFactor;
+    const nodeSpacingBoost = Math.max(1, nodeScale);
+    const hSpacing = 160 * spacingFactor * nodeSpacingBoost;
+    const vSpacing = 100 * spacingFactor * nodeSpacingBoost;
     const startY = 80;
 
     const stageOrder = [
@@ -797,7 +830,7 @@ export default function ProvenancePage() {
       allNodesLayout: positionedAllNodes,
       canvasHeight: computedHeight,
     };
-  }, [graphData, rawVisibleNodes, zoom]);
+  }, [graphData, rawVisibleNodes, zoom, nodeScale]);
 
   const visibleNodeIds = useMemo(
     () => new Set(visibleNodes.map((n) => n.id)),
@@ -1131,7 +1164,7 @@ export default function ProvenancePage() {
                       key={`${edge.from}-${edge.to}-${i}`}
                       edge={edge}
                       nodes={allNodesLayout}
-                      scale={zoom}
+                      nodeScale={nodeScale}
                       isHighlighted={isHighlighted}
                       isDimmed={isDimmed}
                     />
@@ -1156,6 +1189,7 @@ export default function ProvenancePage() {
                       isDimmed={isDimmed}
                       onClick={() => setSelectedNode(node)}
                       scale={zoom}
+                      nodeScale={nodeScale}
                     />
                   );
                 })}
