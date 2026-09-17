@@ -427,6 +427,7 @@ export default function ProvenancePage() {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [dragDistance, setDragDistance] = useState(0);
   const [isGraphExpanded, setIsGraphExpanded] = useState(false);
   const [isPinching, setIsPinching] = useState(false);
   const [pinchData, setPinchData] = useState<{
@@ -436,6 +437,7 @@ export default function ProvenancePage() {
     midpoint: { x: number; y: number };
   } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const DRAG_THRESHOLD = 5; // pixels
 
   // Load experiments list
   useEffect(() => {
@@ -480,6 +482,12 @@ export default function ProvenancePage() {
   };
 
   const handleWheel = (e: React.WheelEvent) => {
+    // Only handle wheel over the SVG itself
+    const svg = svgRef.current;
+    if (!svg || e.target !== svg && (e.target as SVGElement).tagName !== "svg" && (e.target as SVGElement).tagName !== "rect") {
+      return;
+    }
+
     e.preventDefault(); // prevent page scroll
     const delta = e.deltaY;
     const zoomChange = Math.exp(-delta * 0.001); // base sensitivity
@@ -487,23 +495,33 @@ export default function ProvenancePage() {
     newZoom = Math.min(Math.max(newZoom, 0.35), 3);
     if (newZoom === zoom) return;
 
-    const svg = svgRef.current;
-    if (!svg) return;
-    const point = svg.createSVGPoint();
-    point.x = e.clientX;
-    point.y = e.clientY;
-    const screenCTM = svg.getScreenCTM();
-    if (screenCTM) {
-      const inverted = screenCTM.inverse();
-      const svgPoint = point.matrixTransform(inverted);
-      const { x: svgX, y: svgY } = svgPoint;
-      const offsetX = 50;
-      const offsetY = 20;
-      const newPanX = e.clientX - (svgX * newZoom + offsetX);
-      const newPanY = e.clientY - (svgY * newZoom + offsetY);
-      setZoom(newZoom);
-      setPan({ x: newPanX, y: newPanY });
-    }
+    // Get the mouse position in SVG coordinates
+    const rect = svg.getBoundingClientRect();
+    const clientX = e.clientX - rect.left;
+    const clientY = e.clientY - rect.top;
+
+    // Convert client coordinates to SVG viewBox coordinates
+    const svgWidth = svg.viewBox.baseVal.width;
+    const svgHeight = svg.viewBox.baseVal.height;
+    const scaleX = svgWidth / rect.width;
+    const scaleY = svgHeight / rect.height;
+
+    // SVG point before zoom (accounting for current pan and zoom)
+    // The transform is: translate(pan.x + offset, pan.y + offset) scale(zoom)
+    // So to convert from screen to SVG: svgPoint = (screenPoint - pan - offset) / zoom
+    const offsetX = 50;
+    const offsetY = 20;
+    const svgX = (clientX * scaleX - pan.x - offsetX) / zoom;
+    const svgY = (clientY * scaleY - pan.y - offsetY) / zoom;
+
+    // After zoom, we want the same SVG point to be at the same screen position
+    // screenPoint = svgPoint * newZoom + newPan + offset
+    // So: newPan = screenPoint - svgPoint * newZoom - offset
+    const newPanX = clientX * scaleX - svgX * newZoom - offsetX;
+    const newPanY = clientY * scaleY - svgY * newZoom - offsetY;
+
+    setZoom(newZoom);
+    setPan({ x: newPanX, y: newPanY });
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -513,72 +531,129 @@ export default function ProvenancePage() {
       (e.target as SVGElement).tagName === "rect"
     ) {
       setIsDragging(true);
-      setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+      setDragStart({ x: e.clientX, y: e.clientY });
+      setDragDistance(0);
     }
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (isDragging) {
+      const dx = e.clientX - dragStart.x;
+      const dy = e.clientY - dragStart.y;
+      const distance = Math.hypot(dx, dy);
+      setDragDistance(distance);
+
       setPan({
-        x: e.clientX - dragStart.x,
-        y: e.clientY - dragStart.y,
+        x: pan.x + dx,
+        y: pan.y + dy,
       });
+      setDragStart({ x: e.clientX, y: e.clientY });
     }
   };
 
   const handleMouseUp = () => {
     setIsDragging(false);
+    setDragDistance(0);
   };
 
   // Touch support for mobile pan and pinch zoom
   const handleTouchStart = (e: React.TouchEvent) => {
+    const svg = svgRef.current;
+    if (!svg) return;
+
+    // Check if touch is on the graph area
     if (
-      e.target === svgRef.current ||
-      (e.target as SVGElement).tagName === "svg" ||
-      (e.target as SVGElement).tagName === "rect"
+      e.target !== svg &&
+      (e.target as SVGElement).tagName !== "svg" &&
+      (e.target as SVGElement).tagName !== "rect"
     ) {
-if (e.touches.length === 2) {
-  e.preventDefault();
-  setIsPinching(true);
-  const t1 = e.touches[0];
-  const t2 = e.touches[1];
-  const distance = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-  const midpoint = { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 };
-  setPinchData({ distance, zoom, pan: { x: pan.x, y: pan.y }, midpoint });
-} else if (e.touches.length === 1) {
-  e.preventDefault();
-  setIsDragging(true);
-  setDragStart({ x: e.touches[0].clientX - pan.x, y: e.touches[0].clientY - pan.y });
-}
-        setIsDragging(true);
-        setDragStart({ x: e.touches[0].clientX - pan.x, y: e.touches[0].clientY - pan.y });
-      }
+      return;
+    }
+
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      setIsPinching(true);
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const distance = Math.hypot(
+        t2.clientX - t1.clientX,
+        t2.clientY - t1.clientY
+      );
+      const midpoint = {
+        x: (t1.clientX + t2.clientX) / 2,
+        y: (t1.clientY + t2.clientY) / 2,
+      };
+      setPinchData({
+        distance,
+        zoom,
+        pan: { x: pan.x, y: pan.y },
+        midpoint,
+      });
+    } else if (e.touches.length === 1) {
+      e.preventDefault();
+      setIsDragging(true);
+      setDragStart({
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+      });
+      setDragDistance(0);
     }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-if (isPinching && e.touches.length === 2) {
-  e.preventDefault();
-  const t1 = e.touches[0];
-  const t2 = e.touches[1];
-  const distance = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-  const pinch = pinchData!;
-  const scaleFactor = distance / pinch.distance;
-  let newZoom = Math.min(Math.max(pinch.zoom * scaleFactor, 0.35), 3);
-  const midpoint = pinch.midpoint;
-  const offsetX = 50;
-  const offsetY = 20;
-  const newPanX = midpoint.x - (midpoint.x * newZoom + offsetX);
-  const newPanY = midpoint.y - (midpoint.y * newZoom + offsetY);
-  setZoom(newZoom);
-  setPan({ x: newPanX, y: newPanY });
-} else if (isDragging && e.touches.length === 1) {
-  e.preventDefault();
-  setPan({
-    x: e.touches[0].clientX - dragStart.x,
-    y: e.touches[0].clientY - dragStart.y,
-  });
-}
+    if (isPinching && e.touches.length === 2 && pinchData) {
+      e.preventDefault();
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const distance = Math.hypot(
+        t2.clientX - t1.clientX,
+        t2.clientY - t1.clientY
+      );
+      const scaleFactor = distance / pinchData.distance;
+      let newZoom = Math.min(Math.max(pinchData.zoom * scaleFactor, 0.35), 3);
+
+      // Get SVG rect for coordinate conversion
+      const svg = svgRef.current;
+      if (!svg) return;
+      const rect = svg.getBoundingClientRect();
+      const svgWidth = svg.viewBox.baseVal.width;
+      const svgHeight = svg.viewBox.baseVal.height;
+      const scaleX = svgWidth / rect.width;
+      const scaleY = svgHeight / rect.height;
+
+      // Convert midpoint to SVG coordinates
+      const midpointClientX = pinchData.midpoint.x - rect.left;
+      const midpointClientY = pinchData.midpoint.y - rect.top;
+
+      // SVG point before new zoom
+      const offsetX = 50;
+      const offsetY = 20;
+      const svgX =
+        (midpointClientX * scaleX - pinchData.pan.x - offsetX) / pinchData.zoom;
+      const svgY =
+        (midpointClientY * scaleY - pinchData.pan.y - offsetY) / pinchData.zoom;
+
+      // Adjust pan so the pinch midpoint stays in place
+      const newPanX = midpointClientX * scaleX - svgX * newZoom - offsetX;
+      const newPanY = midpointClientY * scaleY - svgY * newZoom - offsetY;
+
+      setZoom(newZoom);
+      setPan({ x: newPanX, y: newPanY });
+    } else if (isDragging && e.touches.length === 1) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - dragStart.x;
+      const dy = e.touches[0].clientY - dragStart.y;
+      const distance = Math.hypot(dx, dy);
+      setDragDistance(distance);
+
+      setPan({
+        x: pan.x + dx,
+        y: pan.y + dy,
+      });
+      setDragStart({
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+      });
     }
   };
 
@@ -586,6 +661,7 @@ if (isPinching && e.touches.length === 2) {
     setIsDragging(false);
     setIsPinching(false);
     setPinchData(null);
+    setDragDistance(0);
   };
 
   const toggleTypeFilter = (type: ProvenanceNodeType) => {
@@ -909,7 +985,12 @@ if (isPinching && e.touches.length === 2) {
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
-              onClick={() => setSelectedNode(null)}
+              onClick={() => {
+                // Only clear selection if no drag occurred
+                if (dragDistance < DRAG_THRESHOLD) {
+                  setSelectedNode(null);
+                }
+              }}
               style={{ cursor: isDragging ? "grabbing" : "grab", touchAction: "none", overscrollBehavior: "contain" }}
             >
               {/* Background grid pattern */}
