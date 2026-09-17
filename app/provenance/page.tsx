@@ -180,8 +180,11 @@ function GraphNodeSvg({
 }) {
   const color = nodeTypeColors[node.type] ?? nodeTypeColors.experiment;
   const isFailed = !node.verified || node.status === "failed";
-  const labelLines = node.label.length > 18
-    ? [`${node.label.slice(0, 17)}...`, node.label.slice(17, 32)]
+  
+  // Truncate or wrap label appropriately so it never overflows adjacent nodes
+  const maxChars = scale < 0.6 ? 14 : scale < 0.85 ? 18 : 22;
+  const labelLines = node.label.length > maxChars
+    ? [`${node.label.slice(0, maxChars - 1)}…`, node.label.slice(maxChars - 1, maxChars * 2 - 2)]
     : [node.label];
 
   return (
@@ -481,48 +484,52 @@ export default function ProvenancePage() {
     setPan({ x: 0, y: 0 });
   };
 
-  const handleWheel = (e: React.WheelEvent) => {
-    // Only handle wheel over the SVG itself
+  // Attach native non-passive wheel listener to avoid browser passive event listener errors
+  useEffect(() => {
+    if (loading) return;
     const svg = svgRef.current;
-    if (!svg || e.target !== svg && (e.target as SVGElement).tagName !== "svg" && (e.target as SVGElement).tagName !== "rect") {
-      return;
-    }
+    if (!svg) return;
 
-    e.preventDefault(); // prevent page scroll
-    const delta = e.deltaY;
-    const zoomChange = Math.exp(-delta * 0.001); // base sensitivity
-    let newZoom = zoom * zoomChange;
-    newZoom = Math.min(Math.max(newZoom, 0.35), 3);
-    if (newZoom === zoom) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY;
+      const zoomChange = Math.exp(-delta * 0.001);
+      
+      setZoom((prevZoom) => {
+        let newZoom = prevZoom * zoomChange;
+        newZoom = Math.min(Math.max(newZoom, 0.35), 3);
+        if (newZoom === prevZoom) return prevZoom;
 
-    // Get the mouse position in SVG coordinates
-    const rect = svg.getBoundingClientRect();
-    const clientX = e.clientX - rect.left;
-    const clientY = e.clientY - rect.top;
+        const rect = svg.getBoundingClientRect();
+        const clientX = e.clientX - rect.left;
+        const clientY = e.clientY - rect.top;
 
-    // Convert client coordinates to SVG viewBox coordinates
-    const svgWidth = svg.viewBox.baseVal.width;
-    const svgHeight = svg.viewBox.baseVal.height;
-    const scaleX = svgWidth / rect.width;
-    const scaleY = svgHeight / rect.height;
+        const svgWidth = svg.viewBox.baseVal.width || 1000;
+        const scaleX = svgWidth / rect.width;
+        const scaleY = scaleX;
 
-    // SVG point before zoom (accounting for current pan and zoom)
-    // The transform is: translate(pan.x + offset, pan.y + offset) scale(zoom)
-    // So to convert from screen to SVG: svgPoint = (screenPoint - pan - offset) / zoom
-    const offsetX = 50;
-    const offsetY = 20;
-    const svgX = (clientX * scaleX - pan.x - offsetX) / zoom;
-    const svgY = (clientY * scaleY - pan.y - offsetY) / zoom;
+        const offsetX = 50;
+        const offsetY = 20;
 
-    // After zoom, we want the same SVG point to be at the same screen position
-    // screenPoint = svgPoint * newZoom + newPan + offset
-    // So: newPan = screenPoint - svgPoint * newZoom - offset
-    const newPanX = clientX * scaleX - svgX * newZoom - offsetX;
-    const newPanY = clientY * scaleY - svgY * newZoom - offsetY;
+        setPan((prevPan) => {
+          const svgX = (clientX * scaleX - prevPan.x - offsetX) / prevZoom;
+          const svgY = (clientY * scaleY - prevPan.y - offsetY) / prevZoom;
 
-    setZoom(newZoom);
-    setPan({ x: newPanX, y: newPanY });
-  };
+          const newPanX = clientX * scaleX - svgX * newZoom - offsetX;
+          const newPanY = clientY * scaleY - svgY * newZoom - offsetY;
+
+          return { x: newPanX, y: newPanY };
+        });
+
+        return newZoom;
+      });
+    };
+
+    svg.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      svg.removeEventListener("wheel", onWheel);
+    };
+  }, [loading]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (
@@ -693,7 +700,7 @@ export default function ProvenancePage() {
   };
 
   // Filter nodes based on type filters & search query
-  const visibleNodes = useMemo(() => {
+  const rawVisibleNodes = useMemo(() => {
     if (!graphData) return [];
     return graphData.nodes.filter((node) => {
       const matchesType = activeTypeFilters.has(node.type);
@@ -707,6 +714,90 @@ export default function ProvenancePage() {
       return matchesType && matchesSearch;
     });
   }, [graphData, activeTypeFilters, searchQuery]);
+
+  // Dynamically recalculate node positions and spacing based on zoom level
+  // When zoom changes, horizontal and vertical spacing adapt dynamically so nodes and labels never overlap
+  const { visibleNodes, allNodesLayout, canvasHeight } = useMemo(() => {
+    if (!graphData) {
+      return { visibleNodes: [], allNodesLayout: [], canvasHeight: 1040 };
+    }
+
+    // Spacing multipliers that adapt based on zoom level:
+    // When zooming in (zoom > 1), provide expansive horizontal and vertical spacing between elements.
+    // When zooming out (zoom < 1), scale spacing proportionally so items remain distinctly separated.
+    const spacingFactor = Math.max(0.6, Math.min(zoom, 2.2));
+    const hSpacing = 160 * spacingFactor;
+    const vSpacing = 100 * spacingFactor;
+    const startY = 80;
+
+    const stageOrder = [
+      "experiment",
+      "sample",
+      "instrument",
+      "measurement",
+      "correction",
+      "dataset_version",
+      "dataset",
+      "processing",
+      "analysis",
+      "result",
+      "submission",
+      "evidence",
+    ];
+
+    const stageForType: Record<string, string> = {
+      experiment: "experiment",
+      sample: "sample",
+      instrument: "sample",
+      measurement: "measurement",
+      correction: "measurement",
+      dataset_version: "dataset",
+      dataset: "dataset",
+      processing: "processing",
+      analysis: "analysis",
+      result: "result",
+      submission: "submission",
+      evidence: "evidence",
+    };
+
+    const stageCounts: Record<string, number> = {};
+    for (const node of graphData.nodes) {
+      const stage = stageForType[node.type] || "measurement";
+      stageCounts[stage] = (stageCounts[stage] || 0) + 1;
+    }
+
+    const stageCounters: Record<string, number> = {};
+    const positionedAllNodes: ProvenanceGraphNode[] = graphData.nodes.map((n) => {
+      const stage = stageForType[n.type] || "measurement";
+      stageCounters[stage] = (stageCounters[stage] || 0) + 1;
+      const index = stageCounters[stage] - 1;
+      const count = stageCounts[stage] || 1;
+      const stageIndex = stageOrder.indexOf(stage);
+
+      const x = 500 + (index - (count - 1) / 2) * hSpacing;
+      const y = startY + (stageIndex >= 0 ? stageIndex : 3) * vSpacing;
+
+      return {
+        ...n,
+        x,
+        y,
+      };
+    });
+
+    const positionedNodeMap = new Map(positionedAllNodes.map((n) => [n.id, n]));
+    const positionedVisibleNodes = rawVisibleNodes.map(
+      (n) => positionedNodeMap.get(n.id) || n
+    );
+
+    const maxStageIdx = stageOrder.length;
+    const computedHeight = Math.max(1040, startY + maxStageIdx * vSpacing + 120);
+
+    return {
+      visibleNodes: positionedVisibleNodes,
+      allNodesLayout: positionedAllNodes,
+      canvasHeight: computedHeight,
+    };
+  }, [graphData, rawVisibleNodes, zoom]);
 
   const visibleNodeIds = useMemo(
     () => new Set(visibleNodes.map((n) => n.id)),
@@ -975,13 +1066,12 @@ export default function ProvenancePage() {
               ref={svgRef}
               width="100%"
               height="100%"
-              viewBox="0 0 1000 1040"
+              viewBox={`0 0 1000 ${canvasHeight}`}
               preserveAspectRatio="xMidYMin meet"
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
-              onWheel={handleWheel}
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
@@ -1040,7 +1130,7 @@ export default function ProvenancePage() {
                     <GraphEdgeSvg
                       key={`${edge.from}-${edge.to}-${i}`}
                       edge={edge}
-                      nodes={allNodes}
+                      nodes={allNodesLayout}
                       scale={zoom}
                       isHighlighted={isHighlighted}
                       isDimmed={isDimmed}
