@@ -164,39 +164,35 @@ function GraphNodeSvg({
   isHighlighted,
   isDimmed,
   onClick,
-  scale,
-  nodeScale,
 }: {
   node: ProvenanceGraphNode;
   isSelected: boolean;
   isHighlighted: boolean;
   isDimmed: boolean;
   onClick: () => void;
-  scale: number;
-  nodeScale: number;
 }) {
   const color = nodeTypeColors[node.type] ?? nodeTypeColors.experiment;
   const isFailed = !node.verified || node.status === "failed";
 
-  // Base sizes scaled by nodeScale so elements grow/shrink with zoom
-  const bodyRadius = 38 * nodeScale;
-  const selectionRingRadius = 48 * nodeScale;
-  const highlightRingRadius = 45 * nodeScale;
-  const iconSize = 18 * nodeScale;
-  const labelFontSize = 11 * nodeScale;
-  const subtitleFontSize = 9 * nodeScale;
-  const labelYOffset = 54 * nodeScale;
-  const labelLineHeight = 13 * nodeScale;
-  const subtitleYOffset1 = 68 * nodeScale;
-  const subtitleYOffset2 = 82 * nodeScale;
-  const badgeOffset = 24 * nodeScale;
-  const badgeRadiusFail = 8 * nodeScale;
-  const badgeRadiusOk = 6 * nodeScale;
-  const strokeLabel = 4 * nodeScale;
-  const strokeSubtitle = 3 * nodeScale;
+  // Crisp, generous dimensions in SVG coordinate space
+  const bodyRadius = 40;
+  const selectionRingRadius = 52;
+  const highlightRingRadius = 48;
+  const iconSize = 20;
+  const labelFontSize = 12;
+  const subtitleFontSize = 10;
+  const labelYOffset = 60;
+  const labelLineHeight = 15;
+  const subtitleYOffset1 = 76;
+  const subtitleYOffset2 = 92;
+  const badgeOffset = 26;
+  const badgeRadiusFail = 8.5;
+  const badgeRadiusOk = 6.5;
+  const strokeLabel = 4;
+  const strokeSubtitle = 3;
 
   // Truncate or wrap label appropriately so it never overflows adjacent nodes
-  const maxChars = scale < 0.6 ? 14 : scale < 0.85 ? 18 : 22;
+  const maxChars = 20;
   const labelLines = node.label.length > maxChars
     ? [`${node.label.slice(0, maxChars - 1)}…`, node.label.slice(maxChars - 1, maxChars * 2 - 2)]
     : [node.label];
@@ -341,13 +337,11 @@ function GraphNodeSvg({
 function GraphEdgeSvg({
   edge,
   nodes,
-  nodeScale,
   isHighlighted,
   isDimmed,
 }: {
   edge: ProvenanceGraphEdge;
   nodes: ProvenanceGraphNode[];
-  nodeScale: number;
   isHighlighted: boolean;
   isDimmed: boolean;
 }) {
@@ -371,11 +365,10 @@ function GraphEdgeSvg({
     ? "var(--color-primary)"
     : "color-mix(in srgb, var(--color-border) 70%, transparent)";
 
-  // Scale the edge arrow offset to match scaled node body radius
-  const bodyRadius = 38 * nodeScale;
-  const strokeWidth = (isHighlighted ? 3 : 1.5) * nodeScale;
-  const dotRadius = 3.5 * nodeScale;
-  const edgeLabelFontSize = 10 * nodeScale;
+  const bodyRadius = 40;
+  const strokeWidth = isHighlighted ? 3 : 1.5;
+  const dotRadius = 3.5;
+  const edgeLabelFontSize = 10;
 
   return (
     <g opacity={isDimmed ? 0.15 : 1}>
@@ -586,15 +579,6 @@ export default function ProvenancePage() {
     const svg = svgRef.current;
     if (!svg) return;
 
-    // Check if touch is on the graph area
-    if (
-      e.target !== svg &&
-      (e.target as SVGElement).tagName !== "svg" &&
-      (e.target as SVGElement).tagName !== "rect"
-    ) {
-      return;
-    }
-
     if (e.touches.length === 2) {
       e.preventDefault();
       setIsPinching(true);
@@ -615,7 +599,7 @@ export default function ProvenancePage() {
         midpoint,
       });
     } else if (e.touches.length === 1) {
-      e.preventDefault();
+      // Allow dragging from any touch point on the canvas
       setIsDragging(true);
       setDragStart({
         x: e.touches[0].clientX,
@@ -733,31 +717,16 @@ export default function ProvenancePage() {
     });
   }, [graphData, activeTypeFilters, searchQuery]);
 
-  // Compute a scale factor for node elements (circles, text, icons) that grows
-  // with zoom so nodes are visually larger when zoomed in and ensures they are
-  // never too small on mobile where the viewBox gets compressed into a small container.
-  const nodeScale = useMemo(() => {
-    // When zooming in, scale node element sizes directly with zoom level
-    // so circles, icons, and text grow prominently for easy touch and readability.
-    return Math.max(0.75, Math.min(zoom * 1.15, 2.5));
-  }, [zoom]);
-
-  // Dynamically recalculate node positions and spacing based on zoom level
-  // When zoom changes, horizontal and vertical spacing adapt dynamically so nodes and labels never overlap
+  // Dynamically calculate node positions. Layout positions are based on a standard
+  // coordinate space so zooming smoothly magnifies nodes and spacing via SVG transform.
   const { visibleNodes, allNodesLayout, canvasHeight } = useMemo(() => {
     if (!graphData) {
-      return { visibleNodes: [], allNodesLayout: [], canvasHeight: 1040 };
+      return { visibleNodes: [], allNodesLayout: [], canvasHeight: 1200 };
     }
 
-    // Spacing multipliers that adapt based on zoom level:
-    // When zooming in (zoom > 1), provide expansive horizontal and vertical spacing between elements.
-    // When zooming out (zoom < 1), scale spacing proportionally so items remain distinctly separated.
-    // Account for nodeScale: when elements are larger they need proportionally more room.
-    const spacingFactor = Math.max(0.6, Math.min(zoom, 2.2));
-    const nodeSpacingBoost = Math.max(1, nodeScale);
-    const hSpacing = 160 * spacingFactor * nodeSpacingBoost;
-    const vSpacing = 100 * spacingFactor * nodeSpacingBoost;
-    const startY = 80;
+    const hSpacing = 220;
+    const vSpacing = 135;
+    const startY = 100;
 
     const stageOrder = [
       "experiment",
@@ -819,14 +788,14 @@ export default function ProvenancePage() {
     );
 
     const maxStageIdx = stageOrder.length;
-    const computedHeight = Math.max(1040, startY + maxStageIdx * vSpacing + 120);
+    const computedHeight = Math.max(1200, startY + maxStageIdx * vSpacing + 140);
 
     return {
       visibleNodes: positionedVisibleNodes,
       allNodesLayout: positionedAllNodes,
       canvasHeight: computedHeight,
     };
-  }, [graphData, rawVisibleNodes, zoom, nodeScale]);
+  }, [graphData, rawVisibleNodes]);
 
   const visibleNodeIds = useMemo(
     () => new Set(visibleNodes.map((n) => n.id)),
@@ -1160,7 +1129,6 @@ export default function ProvenancePage() {
                       key={`${edge.from}-${edge.to}-${i}`}
                       edge={edge}
                       nodes={allNodesLayout}
-                      nodeScale={nodeScale}
                       isHighlighted={isHighlighted}
                       isDimmed={isDimmed}
                     />
@@ -1184,8 +1152,6 @@ export default function ProvenancePage() {
                       isHighlighted={isHighlighted}
                       isDimmed={isDimmed}
                       onClick={() => setSelectedNode(node)}
-                      scale={zoom}
-                      nodeScale={nodeScale}
                     />
                   );
                 })}
